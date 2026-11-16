@@ -12,7 +12,7 @@ export default function CarteTerrain({ terrain }) {
   return (
     <Link to={`/terrains/${terrain.id}`}
       className="group flex min-w-0 overflow-hidden rounded-lg border border-line bg-surface shadow-card transition-shadow hover:shadow-float sm:flex-col">
-      <div className="relative w-28 shrink-0 bg-primary/10 sm:aspect-[16/9] sm:w-full">
+      <div className="relative w-24 shrink-0 bg-primary/10 sm:aspect-[16/9] sm:w-full">
         {terrain.photoUrl ? (
           <img src={terrain.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
         ) : (
@@ -30,11 +30,11 @@ export default function CarteTerrain({ terrain }) {
           <ChevronRight size={18} className="mt-0.5 shrink-0 text-ink-light transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
         </div>
         {terrain.surface && <p className="truncate text-xs text-ink-light">{terrain.surface}</p>}
-        <div className="mt-auto flex items-center justify-between gap-2 pt-1 text-sm">
-          <span className="inline-flex items-center gap-1 text-ink-light">
+        <div className="mt-auto flex flex-col gap-0.5 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+          <span className="inline-flex items-center gap-1 whitespace-nowrap text-ink-light">
             <Users size={14} aria-hidden="true" /> {terrain.capacite} joueurs
           </span>
-          <span className="font-semibold text-primary">dès {formatPrix(tarifMin(terrain))}/h</span>
+          <span className="whitespace-nowrap font-semibold text-primary">dès {formatPrix(tarifMin(terrain))}/h</span>
         </div>
       </div>
     </Link>
