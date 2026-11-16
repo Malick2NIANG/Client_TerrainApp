@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, CalendarCheck, Clock, Layers, MapPin, QrCode, Share2, Timer, Users,
+  ArrowLeft, CalendarCheck, Clock, Layers, MapPin, Navigation, QrCode, Share2, Timer, Users,
 } from 'lucide-react';
 import { getDisponibilites, getTerrain } from '../api/terrains';
 import { ecouterChangements } from '../api/tempsReel';
@@ -19,6 +19,8 @@ import { dateLongue, hhmm, jourISO, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { libelleMedias, photosDe, tarifMin } from '../utils/recherche';
 import { joursEnClair } from '../utils/tarifs';
+import { lienItineraire } from '../utils/itineraire';
+import { marque } from '../config/marque';
 
 function Partager({ terrain, className = '' }) {
   const { showToast } = useToast();
@@ -145,7 +147,7 @@ export default function Terrain() {
               </button>
             )}
           </CarrouselPhotos>
-          <Link to="/" aria-label="Retour aux terrains"
+          <Link to="/terrains" aria-label="Retour aux terrains"
             className="absolute left-4 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-card">
             <ArrowLeft size={20} aria-hidden="true" />
           </Link>
@@ -157,7 +159,7 @@ export default function Terrain() {
 
         {/* En-tete de l'annonce. */}
         <header className="px-5 pt-5 md:mt-6 md:px-0 md:pt-0">
-          <Link to="/" className="mb-4 hidden items-center gap-1.5 text-sm font-semibold text-ink-light hover:text-ink md:inline-flex">
+          <Link to="/terrains" className="mb-4 hidden items-center gap-1.5 text-sm font-semibold text-ink-light hover:text-ink md:inline-flex">
             <ArrowLeft size={16} aria-hidden="true" /> Tous les terrains
           </Link>
           {terrain ? (
@@ -254,6 +256,25 @@ export default function Terrain() {
               )}
             </div>
           </section>
+
+          {terrain && lienItineraire(terrain) && (
+            <section className="border-t border-line py-7" aria-labelledby="acces">
+              <Titre id="acces">Comment venir</Titre>
+              <div className="mt-4 flex flex-col gap-4 rounded-xl bg-surface-alt p-5 sm:flex-row sm:items-center sm:justify-between">
+                <p className="flex items-start gap-3 text-[15px]">
+                  <MapPin size={20} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+                  <span>
+                    <span className="block font-semibold">{terrain.localite || marque.nom}</span>
+                    {marque.adresse && <span className="block text-sm text-ink-light">{marque.adresse}</span>}
+                  </span>
+                </p>
+                <a href={lienItineraire(terrain)} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[rgb(var(--marque-nuit))] px-5 text-sm font-semibold text-white">
+                  <Navigation size={17} aria-hidden="true" /> Itinéraire
+                </a>
+              </div>
+            </section>
+          )}
 
           <section className="border-t border-line py-7" aria-labelledby="savoir">
             <Titre id="savoir">Bon à savoir</Titre>

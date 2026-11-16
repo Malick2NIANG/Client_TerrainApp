@@ -3,6 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { reserver } from '../api/reservations';
 import MoyensPaiement from '../components/MoyensPaiement';
+import ChampPin from '../components/ChampPin';
+import { refusPin } from '../utils/pin';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
@@ -26,6 +28,7 @@ export default function Reserver() {
   const memo = contactMemorise();
   const [nom, setNom] = useState(memo.nom || '');
   const [telephone, setTelephone] = useState(memo.telephone || '');
+  const [pin, setPin] = useState('');
   const [moyen, setMoyen] = useState('wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -43,13 +46,15 @@ export default function Reserver() {
     const fautes = {};
     if (nom.trim().length < 2) fautes.nom = 'Indiquez votre nom.';
     if (!telNormalise) fautes.telephone = 'Numéro sénégalais à 9 chiffres (ex. 77 123 45 67).';
+    const pinRefuse = refusPin(pin);
+    if (pinRefuse) fautes.pin = pinRefuse;
     setChamps(fautes);
     if (Object.keys(fautes).length) return;
     setEnvoi(true);
     setErreur(null);
     try {
       const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: nom.trim(),
-        clientTelephone: telNormalise, moyenPaiement: moyen }, cle.current);
+        clientTelephone: telNormalise, moyenPaiement: moyen, pin }, cle.current);
       try {
         localStorage.setItem(CLE_CONTACT, JSON.stringify({ nom: nom.trim(), telephone }));
       } catch {
@@ -113,9 +118,11 @@ export default function Reserver() {
             {champs.telephone ? (
               <span className="mt-1 block text-xs text-danger">{champs.telephone}</span>
             ) : (
-              <span className="mt-1 block text-xs text-ink-light">Pour retrouver vos réservations, sans créer de compte.</span>
+              <span className="mt-1 block text-xs text-ink-light">Pour vous joindre au sujet de votre réservation.</span>
             )}
           </label>
+          <ChampPin id="pin" valeur={pin} onChange={setPin} label="Code PIN (4 chiffres)" erreur={champs.pin}
+            aide="Choisissez-le et retenez-le : avec votre numéro, il permet de retrouver vos réservations et vos tickets sur un autre téléphone. Ne le partagez pas." />
         </fieldset>
 
         <fieldset>

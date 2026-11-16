@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import { MesReservationsProvider } from './context/MesReservationsContext';
 import { NotifProvider, useNotif } from './context/NotifContext';
 import Accueil from './pages/Accueil';
+import NosTerrains from './pages/NosTerrains';
 import Terrain from './pages/Terrain';
 import Reserver from './pages/Reserver';
 import Reservation from './pages/Reservation';
@@ -30,6 +31,7 @@ export default function App({ onPret }) {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Accueil />} />
+              <Route path="/terrains" element={<NosTerrains />} />
               <Route path="/terrains/:id" element={<Terrain />} />
               <Route path="/reserver" element={<Reserver />} />
               <Route path="/reservations/:id" element={<Reservation />} />

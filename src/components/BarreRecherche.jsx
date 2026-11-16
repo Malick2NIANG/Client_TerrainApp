@@ -5,7 +5,7 @@ import { normaliser } from '../utils/recherche';
 
 // Barre de recherche facon annonces : une seule zone (nom, quartier, sport,
 // equipement), suggestions au fil de la saisie, effacement en un geste.
-export default function BarreRecherche({ valeur, onChange, terrains = [], sports = [] }) {
+export default function BarreRecherche({ valeur, onChange, onValider, terrains = [], sports = [] }) {
   const [ouvert, setOuvert] = useState(false);
   const [actif, setActif] = useState(-1);
   const champ = useRef(null);
@@ -31,6 +31,7 @@ export default function BarreRecherche({ valeur, onChange, terrains = [], sports
     onChange(s.texte);
     setOuvert(false);
     champ.current?.blur();
+    onValider?.(s.texte);
   };
 
   const clavier = (e) => {
@@ -45,7 +46,7 @@ export default function BarreRecherche({ valeur, onChange, terrains = [], sports
 
   return (
     <div className="relative">
-      <form role="search" onSubmit={(e) => { e.preventDefault(); setOuvert(false); champ.current?.blur(); }}
+      <form role="search" onSubmit={(e) => { e.preventDefault(); setOuvert(false); champ.current?.blur(); onValider?.(valeur); }}
         className="flex h-14 items-center gap-3 rounded-full border border-line bg-surface pl-5 pr-2 shadow-[0_6px_24px_rgba(0,0,0,0.16),0_1px_2px_rgba(0,0,0,0.08)]">
         <Search size={20} className="shrink-0 text-primary" strokeWidth={2.4} aria-hidden="true" />
         <label className="min-w-0 flex-1">

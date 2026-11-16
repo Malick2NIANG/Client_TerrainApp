@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Users } from 'lucide-react';
+import { Flame, MapPin, Users } from 'lucide-react';
 import { formatPrix } from '../utils/format';
 import { photosDe, tarifMin } from '../utils/recherche';
 import CarrouselPhotos from './CarrouselPhotos';
@@ -9,7 +9,7 @@ export { tarifMin };
 
 // Carte "annonce" : grande photo (galerie au doigt), puis en quelques lignes
 // ce qui decide le client : ou, combien de joueurs, a partir de combien.
-export default function CarteTerrain({ terrain }) {
+export default function CarteTerrain({ terrain, badge }) {
   const t = terrain;
   const min = tarifMin(t);
   return (
@@ -18,6 +18,11 @@ export default function CarteTerrain({ terrain }) {
         <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-ink shadow-card backdrop-blur">
           <IconeSport nom={t.sport} size={14} className="text-primary" /> {t.sport}
         </span>
+        {badge && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[rgb(var(--marque-nuit))] px-2.5 py-1 text-xs font-semibold text-white shadow-card">
+            <Flame size={13} className="text-primary-light" aria-hidden="true" /> {badge}
+          </span>
+        )}
       </CarrouselPhotos>
       <div className="mt-3 flex items-start justify-between gap-3">
         <h3 className="min-w-0 truncate text-[15px] font-bold">{t.nom}</h3>

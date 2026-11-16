@@ -4,7 +4,8 @@ import { marque } from '../config/marque';
 import BoutonNotif from './BoutonNotif';
 
 const liens = [
-  { to: '/', label: 'Réserver un terrain' },
+  { to: '/', label: 'Accueil' },
+  { to: '/terrains', label: 'Nos terrains' },
   { to: '/mes-reservations', label: 'Mes réservations' },
 ];
 
