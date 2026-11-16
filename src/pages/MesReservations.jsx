@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarX2, ChevronRight, Navigation, QrCode, Search, Star } from 'lucide-react';
 import { getReservation } from '../api/reservations';
@@ -79,36 +79,32 @@ function LigneHistorique({ r }) {
   );
 }
 
-function Historique({ reservations }) {
-  const [terme, setTerme] = useState('');
+/** Liste paginee : 10 par 10, "Afficher 10 de plus". */
+function ListePaginee({ elements, rendu, classeListe, cle }) {
   const [nb, setNb] = useState(PAR_PAGE);
-  const trouvees = useMemo(() => reservations.filter((r) => correspond(r, terme)), [reservations, terme]);
-  const reste = trouvees.length - nb;
+  useEffect(() => setNb(PAR_PAGE), [cle]);
+  const reste = elements.length - nb;
   return (
-    <div>
-      <label className="relative block">
-        <span className="sr-only">Rechercher dans l’historique</span>
-        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-light" aria-hidden="true" />
-        <input type="search" value={terme} onChange={(e) => { setTerme(e.target.value); setNb(PAR_PAGE); }}
-          placeholder="Terrain, référence, date…"
-          className="h-12 w-full rounded-xl border border-line bg-surface pl-11 pr-3 outline-none focus:border-primary" />
-      </label>
-      {trouvees.length === 0 ? (
-        <p className="mt-4 rounded-xl bg-surface-alt p-6 text-center text-sm text-ink-light">Aucune réservation ne correspond.</p>
-      ) : (
-        <>
-          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-            {trouvees.slice(0, nb).map((r) => <li key={r.id}><LigneHistorique r={r} /></li>)}
-          </ul>
-          <p className="mt-3 text-center text-xs text-ink-light">{Math.min(nb, trouvees.length)} sur {trouvees.length}</p>
-          {reste > 0 && (
-            <button type="button" onClick={() => setNb((n) => n + PAR_PAGE)}
-              className="mt-3 h-11 w-full rounded-xl border border-ink/80 text-sm font-semibold hover:bg-surface-alt">
-              Afficher {Math.min(PAR_PAGE, reste)} de plus
-            </button>
-          )}
-        </>
+    <>
+      <ul className={classeListe}>{elements.slice(0, nb).map(rendu)}</ul>
+      {elements.length > PAR_PAGE && (
+        <p className="mt-3 text-center text-xs text-ink-light">{Math.min(nb, elements.length)} sur {elements.length}</p>
       )}
+      {reste > 0 && (
+        <button type="button" onClick={() => setNb((n) => n + PAR_PAGE)}
+          className="mt-3 h-11 w-full rounded-xl border border-ink/80 text-sm font-semibold hover:bg-surface-alt">
+          Afficher {Math.min(PAR_PAGE, reste)} de plus
+        </button>
+      )}
+    </>
+  );
+}
+
+function AucunResultat({ terme, onEffacer }) {
+  return (
+    <div className="rounded-xl bg-surface-alt p-6 text-center text-sm text-ink-light">
+      Aucune réservation ne correspond à « {terme.trim()} ».{' '}
+      <button type="button" onClick={onEffacer} className="font-semibold text-ink underline">Effacer</button>
     </div>
   );
 }
@@ -118,6 +114,7 @@ export default function MesReservations() {
   const { showToast } = useToast();
   const [reservations, setReservations] = useState(null);
   const [onglet, setOnglet] = useState(null); // null = automatique
+  const [terme, setTerme] = useState('');
 
   const charger = useCallback(() => {
     let actif = true;
@@ -129,8 +126,10 @@ export default function MesReservations() {
   useEffect(() => charger(), [charger]);
 
   const maintenant = Date.now();
-  const aVenir = (reservations || []).filter((r) => estAVenir(r, maintenant)).sort((a, b) => new Date(a.debut) - new Date(b.debut));
-  const passees = (reservations || []).filter((r) => !estAVenir(r, maintenant)).sort((a, b) => new Date(b.debut) - new Date(a.debut));
+  // La recherche (terrain, reference, date) filtre les deux onglets.
+  const trouvees = (reservations || []).filter((r) => correspond(r, terme));
+  const aVenir = trouvees.filter((r) => estAVenir(r, maintenant)).sort((a, b) => new Date(a.debut) - new Date(b.debut));
+  const passees = trouvees.filter((r) => !estAVenir(r, maintenant)).sort((a, b) => new Date(b.debut) - new Date(a.debut));
   const ongletActif = onglet || (aVenir.length || !passees.length ? 'a-venir' : 'historique');
   const aNoter = passees.filter((r) => peutNoter(r, maintenant)).length;
 
@@ -167,7 +166,16 @@ export default function MesReservations() {
         </div>
       ) : (
         <>
-          <div className="mt-6 flex rounded-xl bg-surface-alt p-1" role="tablist" aria-label="Mes réservations">
+          {(
+            <label className="relative mt-6 block">
+              <span className="sr-only">Rechercher dans mes réservations</span>
+              <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-light" aria-hidden="true" />
+              <input type="search" value={terme} onChange={(e) => setTerme(e.target.value)}
+                placeholder="Terrain, référence, date, quartier…"
+                className="h-12 w-full rounded-xl border border-line bg-surface pl-11 pr-3 outline-none focus:border-primary" />
+            </label>
+          )}
+          <div className="mt-3 flex rounded-xl bg-surface-alt p-1" role="tablist" aria-label="Mes réservations">
             {onglets.map((o) => (
               <button key={o.id} type="button" role="tab" aria-selected={ongletActif === o.id} onClick={() => setOnglet(o.id)}
                 className={`flex h-11 flex-1 items-center justify-center rounded-lg text-sm font-semibold transition-colors ${
@@ -180,13 +188,20 @@ export default function MesReservations() {
           <div className="mt-5" role="tabpanel">
             {ongletActif === 'a-venir' ? (
               aVenir.length ? (
-                <ul className="space-y-4">{aVenir.map((r) => <li key={r.id}><CarteAVenir r={r} /></li>)}</ul>
-              ) : (
+                <ListePaginee elements={aVenir} cle={terme} classeListe="space-y-4"
+                  rendu={(r) => <li key={r.id}><CarteAVenir r={r} /></li>} />
+              ) : terme.trim() ? <AucunResultat terme={terme} onEffacer={() => setTerme('')} /> : (
                 <div className="rounded-xl bg-surface-alt p-6 text-center text-sm text-ink-light">
                   Aucune réservation à venir. <Link to="/terrains" className="font-semibold text-primary underline">Réserver un terrain</Link>
                 </div>
               )
-            ) : <Historique reservations={passees} />}
+            ) : passees.length ? (
+              <ListePaginee elements={passees} cle={terme}
+                classeListe="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface"
+                rendu={(r) => <li key={r.id}><LigneHistorique r={r} /></li>} />
+            ) : terme.trim() ? <AucunResultat terme={terme} onEffacer={() => setTerme('')} /> : (
+              <div className="rounded-xl bg-surface-alt p-6 text-center text-sm text-ink-light">Pas encore d’historique.</div>
+            )}
           </div>
         </>
       )}
