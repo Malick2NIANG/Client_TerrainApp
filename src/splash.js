@@ -2,23 +2,13 @@
 // octet, logo / nom / slogan ajoutes ici aux couleurs du complexe, puis
 // retire en fondu une fois l'app affichee.
 //
-// Animation complete au premier lancement de la session (ouverture de
-// l'app installee, premiere visite) ; apres, un simple fondu.
+// Joue a chaque ouverture de l'app (comme une appli installee).
 import { marque, nomEnDeuxTons } from './config/marque';
 
-const CLE = 'terrainapp_splash_vu';
 // Le temps que le nom finisse de s'eclaircir et que le slogan apparaisse.
 const DUREE_MIN = 2700;
 const debut = Date.now();
 let sortie = null;
-
-function dejaVu() {
-  try {
-    return sessionStorage.getItem(CLE) === '1';
-  } catch {
-    return false;
-  }
-}
 
 function texte(balise, classe, contenu) {
   const el = document.createElement(balise);
@@ -36,7 +26,7 @@ export function remplirSplash(m = marque, doc = document) {
   splash.style.setProperty('--splash-fond', `rgb(${r.getPropertyValue('--marque-nuit').trim().split(' ').join(',')})`);
 
   const bloc = doc.createElement('div');
-  bloc.className = `splash-bloc${dejaVu() ? ' splash-calme' : ''}`;
+  bloc.className = 'splash-bloc';
   if (m.logo) {
     const img = doc.createElement('img');
     img.src = m.logo;
@@ -64,12 +54,7 @@ export function masquerSplash(doc = document) {
   if (sortie) return sortie;
   const splash = doc.getElementById('splash');
   if (!splash) return Promise.resolve();
-  const attente = dejaVu() ? 0 : Math.max(0, DUREE_MIN - (Date.now() - debut));
-  try {
-    sessionStorage.setItem(CLE, '1');
-  } catch {
-    // Navigation privee : l'animation sera simplement rejouee.
-  }
+  const attente = Math.max(0, DUREE_MIN - (Date.now() - debut));
   sortie = new Promise((resolve) => {
     setTimeout(() => {
       splash.classList.add('splash-sortie');

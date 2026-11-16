@@ -110,7 +110,6 @@
     line-height: 1; letter-spacing: .5px; text-transform: uppercase; animation: splashEclaircir 1.8s .35s ease-in-out both; }
   .splash-accent { color: rgb(var(--marque-clair)); }
   .splash-slogan { margin: 10px 0 0; max-width: 280px; font-size: 14px; color: rgb(255 255 255 / .72); animation: splashFondu 1.2s 1.2s ease-in-out both; }
-  .splash-calme .splash-logo, .splash-calme .splash-nom, .splash-calme .splash-slogan { animation: none; }
   @keyframes splashFondu { from { opacity: 0; } to { opacity: 1; } }
   @keyframes splashEclaircir {
     0% { opacity: 0; filter: blur(10px) brightness(.4); }
