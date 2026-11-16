@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyRound, Smartphone } from 'lucide-react';
+import { ChevronDown, KeyRound, Smartphone } from 'lucide-react';
 import { changerPin, demanderCodeRecuperation, retrouverReservations } from '../api/reservations';
 import ChampPin from './ChampPin';
 import { formaterTelephone, normaliserTelephone } from '../utils/telephone';
@@ -11,7 +11,8 @@ const champ = 'mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 ou
 // (choisi a la reservation). PIN oublie : code de recuperation par SMS,
 // puis nouveau PIN. Les reservations retrouvees rejoignent la liste de ce
 // telephone (avec leur jeton d'acces : detail, ticket, recu).
-export default function RetrouverReservations({ telephoneInitial = '', onRetrouvees }) {
+export default function RetrouverReservations({ telephoneInitial = '', onRetrouvees, ouvertParDefaut = false }) {
+  const [ouvert, setOuvert] = useState(ouvertParDefaut);
   const [etape, setEtape] = useState('pin'); // pin | demande | code
   const [telephone, setTelephone] = useState(telephoneInitial);
   const [pin, setPin] = useState('');
@@ -83,22 +84,25 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
   };
 
   return (
-    <section className="rounded-xl border border-line p-5 sm:p-6" aria-labelledby="retrouver-titre">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          {etape === 'pin' ? <Smartphone size={20} aria-hidden="true" /> : <KeyRound size={20} aria-hidden="true" />}
-        </span>
-        <div>
-          <h2 id="retrouver-titre" className="font-bold">
-            {etape === 'pin' ? 'Réservé depuis un autre téléphone ?' : 'Code PIN oublié'}
-          </h2>
-          <p className="mt-0.5 text-sm text-ink-light">
-            {etape === 'pin'
-              ? 'Votre numéro et votre code PIN suffisent : vos réservations et vos tickets reviennent ici.'
-              : 'Recevez un code par SMS au numéro de la réservation, puis choisissez un nouveau code PIN.'}
-          </p>
-        </div>
-      </div>
+    <section className="overflow-hidden rounded-xl border border-line" aria-labelledby="retrouver-titre">
+      <h2 id="retrouver-titre">
+        <button type="button" onClick={() => setOuvert((o) => !o)} aria-expanded={ouvert} aria-controls="retrouver-contenu"
+          className="flex w-full items-center gap-3 p-4 text-left hover:bg-surface-alt sm:px-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            {etape === 'pin' ? <Smartphone size={20} aria-hidden="true" /> : <KeyRound size={20} aria-hidden="true" />}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">{etape === 'pin' ? 'Réservé depuis un autre téléphone ?' : 'Code PIN oublié'}</span>
+            <span className="block text-sm text-ink-light">Retrouvez vos réservations avec votre numéro et votre code PIN.</span>
+          </span>
+          <ChevronDown size={20} aria-hidden="true" className={`shrink-0 text-ink-light transition-transform duration-200 ${ouvert ? 'rotate-180' : ''}`} />
+        </button>
+      </h2>
+
+      <div id="retrouver-contenu" hidden={!ouvert} className="border-t border-line px-4 pb-5 pt-1 sm:px-5">
+      {etape !== 'pin' && (
+        <p className="mt-3 text-sm text-ink-light">Recevez un code par SMS au numéro de la réservation, puis choisissez un nouveau code PIN.</p>
+      )}
 
       <form onSubmit={etape === 'pin' ? chercher : etape === 'demande' ? envoyerCode : valider} noValidate className="mt-4 space-y-3">
         <label className="block text-sm">
@@ -142,6 +146,7 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
             )}
           </>
         )}
+      </div>
       </div>
     </section>
   );

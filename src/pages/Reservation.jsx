@@ -4,6 +4,8 @@ import { ArrowLeft, CheckCircle2, Clock, FileDown, Navigation } from 'lucide-rea
 import { getReservation, relancerPaiement } from '../api/reservations';
 import BadgeStatut from '../components/BadgeStatut';
 import Ticket from '../components/Ticket';
+import NoterTerrain from '../components/NoterTerrain';
+import { peutNoter } from '../utils/avis';
 import { EtatErreur, Squelette } from '../components/EtatChargement';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
@@ -138,6 +140,9 @@ export default function Reservation() {
                 Le reçu contient votre QR code : gardez-le, il suffit à l’entrée même sans l’app.
               </p>
             </>
+          )}
+          {(peutNoter(res) || res.avisNote) && (
+            <NoterTerrain reservation={res} jeton={jeton} onNote={(note) => setRes((r) => ({ ...r, avisNote: note }))} />
           )}
         </div>
       )}

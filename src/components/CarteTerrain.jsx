@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Flame, MapPin, Users } from 'lucide-react';
+import { Flame, MapPin, Star, Users } from 'lucide-react';
+import { noteLisible } from '../utils/avis';
 import { formatPrix } from '../utils/format';
 import { photosDe, tarifMin } from '../utils/recherche';
 import CarrouselPhotos from './CarrouselPhotos';
@@ -26,9 +27,14 @@ export default function CarteTerrain({ terrain, badge }) {
       </CarrouselPhotos>
       <div className="mt-3 flex items-start justify-between gap-3">
         <h3 className="min-w-0 truncate text-[15px] font-bold">{t.nom}</h3>
-        <span className="inline-flex shrink-0 items-center gap-1 text-sm text-ink-light">
-          <Users size={14} aria-hidden="true" /> {t.capacite}
-        </span>
+        {t.nombreAvis > 0 ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm" aria-label={`Note ${noteLisible(t.noteMoyenne)} sur 5, ${t.nombreAvis} avis`}>
+            <Star size={14} className="fill-ink text-ink" aria-hidden="true" /> {noteLisible(t.noteMoyenne)}
+            <span className="text-ink-light">({t.nombreAvis})</span>
+          </span>
+        ) : (
+          <span className="shrink-0 text-sm text-ink-light">Nouveau</span>
+        )}
       </div>
       {t.localite && (
         <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-ink-light">
@@ -36,7 +42,8 @@ export default function CarteTerrain({ terrain, badge }) {
         </p>
       )}
       <p className="truncate text-sm text-ink-light">
-        {[t.surface, `créneaux de ${t.dureeCreneauMinutes} min`].filter(Boolean).join(' · ')}
+        <Users size={13} className="mr-1 inline align-[-2px]" aria-hidden="true" />
+        {[`${t.capacite} joueurs`, t.surface, `${t.dureeCreneauMinutes} min`].filter(Boolean).join(' · ')}
       </p>
       <p className="mt-1.5 text-[15px]">
         {min < t.tarifHeure && <span className="text-ink-light">dès </span>}

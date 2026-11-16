@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarX2, ChevronRight, Navigation, QrCode, Search } from 'lucide-react';
+import { CalendarX2, ChevronRight, Navigation, QrCode, Search, Star } from 'lucide-react';
 import { getReservation } from '../api/reservations';
 import BadgeStatut from '../components/BadgeStatut';
 import BoutonNotif from '../components/BoutonNotif';
@@ -12,6 +12,7 @@ import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { lienItineraire } from '../utils/itineraire';
 import { normaliser } from '../utils/recherche';
+import { peutNoter } from '../utils/avis';
 
 const PAR_PAGE = 10;
 const A_VENIR = ['CONFIRMEE', 'EN_ATTENTE_PAIEMENT'];
@@ -68,7 +69,11 @@ function LigneHistorique({ r }) {
         <span className="block truncate text-sm capitalize text-ink-light">{dateLongue(r.debut)} · {plage(r.debut, r.fin)}</span>
         <span className="block text-xs text-ink-light">{formatPrix(r.montant)} · <span className="font-mono">{r.reference}</span></span>
       </span>
-      <BadgeStatut code={r.statut} />
+      {peutNoter(r) ? (
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+          <Star size={12} className="fill-current" aria-hidden="true" /> Noter
+        </span>
+      ) : <BadgeStatut code={r.statut} />}
       <ChevronRight size={18} className="shrink-0 text-ink-light" aria-hidden="true" />
     </Link>
   );
@@ -127,6 +132,7 @@ export default function MesReservations() {
   const aVenir = (reservations || []).filter((r) => estAVenir(r, maintenant)).sort((a, b) => new Date(a.debut) - new Date(b.debut));
   const passees = (reservations || []).filter((r) => !estAVenir(r, maintenant)).sort((a, b) => new Date(b.debut) - new Date(a.debut));
   const ongletActif = onglet || (aVenir.length || !passees.length ? 'a-venir' : 'historique');
+  const aNoter = passees.filter((r) => peutNoter(r, maintenant)).length;
 
   const retrouvees = (liste2) => {
     liste2.forEach(({ reservation: r, jetonAcces }) => ajouter({ id: r.id, jeton: jetonAcces, reference: r.reference, debut: r.debut }));
@@ -135,7 +141,7 @@ export default function MesReservations() {
 
   const onglets = [
     { id: 'a-venir', label: 'À venir', nb: aVenir.length },
-    { id: 'historique', label: 'Historique', nb: passees.length },
+    { id: 'historique', label: aNoter ? `Historique · ${aNoter} à noter` : 'Historique', nb: passees.length },
   ];
 
   return (
@@ -186,7 +192,7 @@ export default function MesReservations() {
       )}
 
       <div className="mt-10">
-        <RetrouverReservations onRetrouvees={retrouvees} />
+        <RetrouverReservations onRetrouvees={retrouvees} ouvertParDefaut={reservations?.length === 0} />
       </div>
     </main>
   );

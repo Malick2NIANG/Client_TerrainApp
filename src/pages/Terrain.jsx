@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, CalendarCheck, Clock, Layers, MapPin, Navigation, QrCode, Share2, Timer, Users,
+  ArrowLeft, CalendarCheck, Clock, Layers, MapPin, Navigation, QrCode, Share2, Star, Timer, Users,
 } from 'lucide-react';
 import { getDisponibilites, getTerrain } from '../api/terrains';
 import { ecouterChangements } from '../api/tempsReel';
@@ -20,6 +20,8 @@ import { formatPrix } from '../utils/format';
 import { libelleMedias, photosDe, tarifMin } from '../utils/recherche';
 import { joursEnClair } from '../utils/tarifs';
 import { lienItineraire } from '../utils/itineraire';
+import { noteLisible } from '../utils/avis';
+import AvisJoueurs from '../components/AvisJoueurs';
 import { marque } from '../config/marque';
 
 function Partager({ terrain, className = '' }) {
@@ -169,11 +171,16 @@ export default function Terrain() {
                   <IconeSport nom={terrain.sport} size={16} /> {terrain.sport}
                 </p>
                 <h1 className="titre-display mt-1 text-[40px] md:text-5xl">{terrain.nom}</h1>
-                {terrain.localite && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-[15px] text-ink-light">
-                    <MapPin size={16} aria-hidden="true" /> {terrain.localite}
-                  </p>
-                )}
+                <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-ink-light">
+                  {terrain.nombreAvis > 0 && (
+                    <a href="#avis" className="inline-flex items-center gap-1 font-semibold text-ink underline-offset-4 hover:underline">
+                      <Star size={15} className="fill-ink text-ink" aria-hidden="true" /> {noteLisible(terrain.noteMoyenne)} · {terrain.nombreAvis} avis
+                    </a>
+                  )}
+                  {terrain.localite && (
+                    <span className="inline-flex items-center gap-1.5"><MapPin size={16} aria-hidden="true" /> {terrain.localite}</span>
+                  )}
+                </p>
               </div>
               <Partager terrain={terrain}
                 className="hidden shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold underline-offset-4 hover:bg-surface-alt hover:underline md:inline-flex" />
@@ -256,6 +263,8 @@ export default function Terrain() {
               )}
             </div>
           </section>
+
+          {terrain && <AvisJoueurs terrain={terrain} />}
 
           {terrain && lienItineraire(terrain) && (
             <section className="border-t border-line py-7" aria-labelledby="acces">
