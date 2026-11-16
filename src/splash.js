@@ -7,7 +7,8 @@
 import { marque, nomEnDeuxTons } from './config/marque';
 
 const CLE = 'terrainapp_splash_vu';
-const DUREE_MIN = 1300;
+// Le temps que le nom finisse de s'eclaircir et que le slogan apparaisse.
+const DUREE_MIN = 2700;
 const debut = Date.now();
 let sortie = null;
 
@@ -50,10 +51,6 @@ export function remplirSplash(m = marque, doc = document) {
   if (accent) nom.appendChild(texte('span', 'splash-accent', accent));
   bloc.appendChild(nom);
   bloc.appendChild(texte('p', 'splash-slogan', m.slogan));
-  const barre = doc.createElement('span');
-  barre.className = 'splash-barre';
-  barre.appendChild(doc.createElement('span'));
-  bloc.appendChild(barre);
   splash.appendChild(bloc);
 }
 
@@ -79,7 +76,7 @@ export function masquerSplash(doc = document) {
       setTimeout(() => {
         splash.remove();
         resolve();
-      }, 500);
+      }, 900);
     }, attente);
   });
   return sortie;
