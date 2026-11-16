@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { reserver } from '../api/reservations';
 import MoyensPaiement from '../components/MoyensPaiement';
 import ChampPin from '../components/ChampPin';
 import { refusPin } from '../utils/pin';
+import { pinRetenu, retenirPin } from '../utils/pinMemorise';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
@@ -28,7 +29,8 @@ export default function Reserver() {
   const memo = contactMemorise();
   const [nom, setNom] = useState(memo.nom || '');
   const [telephone, setTelephone] = useState(memo.telephone || '');
-  const [pin, setPin] = useState('');
+  const [pin, setPin] = useState(() => pinRetenu(normaliserTelephone(memo.telephone)));
+  const [pinConnu, setPinConnu] = useState(() => Boolean(pinRetenu(normaliserTelephone(memo.telephone))));
   const [moyen, setMoyen] = useState('wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -37,9 +39,17 @@ export default function Reserver() {
   // coupure reseau ne reserve (et ne paie) jamais deux fois.
   const cle = useRef(nouvelleCle());
 
+  const telNormalise = normaliserTelephone(telephone);
+
+  // Numero deja utilise sur ce telephone : son PIN est pre-rempli.
+  useEffect(() => {
+    const connu = pinRetenu(telNormalise);
+    setPinConnu(Boolean(connu));
+    if (connu) setPin(connu);
+  }, [telNormalise]);
+
   if (!state?.terrain || !state?.creneau) return <Navigate to="/" replace />;
   const { terrain, creneau } = state;
-  const telNormalise = normaliserTelephone(telephone);
 
   const valider = async (e) => {
     e.preventDefault();
@@ -57,6 +67,7 @@ export default function Reserver() {
         clientTelephone: telNormalise, moyenPaiement: moyen, pin }, cle.current);
       try {
         localStorage.setItem(CLE_CONTACT, JSON.stringify({ nom: nom.trim(), telephone }));
+        retenirPin(telNormalise, pin);
       } catch {
         // facultatif
       }
@@ -121,8 +132,10 @@ export default function Reserver() {
               <span className="mt-1 block text-xs text-ink-light">Pour vous joindre au sujet de votre réservation.</span>
             )}
           </label>
-          <ChampPin id="pin" valeur={pin} onChange={setPin} label="Code PIN (4 chiffres)" erreur={champs.pin}
-            aide="Choisissez-le et retenez-le : avec votre numéro, il permet de retrouver vos réservations et vos tickets sur un autre téléphone. Ne le partagez pas." />
+          <ChampPin id="pin" valeur={pin} onChange={(v) => { setPin(v); setPinConnu(false); }} label="Code PIN (4 chiffres)" erreur={champs.pin}
+            aide={pinConnu
+              ? 'Votre code PIN habituel pour ce numéro, retenu sur ce téléphone. Gardez le même pour retrouver toutes vos réservations ensemble.'
+              : 'Choisissez-le et retenez-le : avec votre numéro, il permet de retrouver vos réservations et vos tickets sur un autre téléphone. Ne le partagez pas.'} />
         </fieldset>
 
         <fieldset>

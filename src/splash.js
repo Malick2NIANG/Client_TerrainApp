@@ -2,13 +2,37 @@
 // octet, logo / nom / slogan ajoutes ici aux couleurs du complexe, puis
 // retire en fondu une fois l'app affichee.
 //
-// Joue a chaque ouverture de l'app (comme une appli installee).
+// L'animation ne se joue qu'au vrai lancement de l'app : premiere ouverture
+// de la session, sur l'accueil. Jamais au retour du paiement, sur un lien
+// partage (fiche terrain, reservation), apres un rechargement ou le bouton
+// retour : l'ecran s'efface alors aussitot.
 import { marque, nomEnDeuxTons } from './config/marque';
 
 // Le temps que le nom finisse de s'eclaircir et que le slogan apparaisse.
 const DUREE_MIN = 2700;
+const CLE = 'terrainapp_splash_joue';
 const debut = Date.now();
 let sortie = null;
+
+/** Faut-il jouer l'animation pour ce chargement de page ? */
+export function lancementDeLApp({ chemin, typeNavigation, dejaJoue }) {
+  if (dejaJoue) return false;
+  if (typeNavigation === 'reload' || typeNavigation === 'back_forward') return false;
+  return chemin === '/' || chemin === '';
+}
+
+function contexte(win = window) {
+  let dejaJoue = false;
+  try {
+    dejaJoue = win.sessionStorage.getItem(CLE) === '1';
+  } catch {
+    dejaJoue = false;
+  }
+  const entree = win.performance?.getEntriesByType?.('navigation')?.[0];
+  return { chemin: win.location.pathname, typeNavigation: entree?.type, dejaJoue };
+}
+
+const jouer = typeof window !== 'undefined' && lancementDeLApp(contexte());
 
 function texte(balise, classe, contenu) {
   const el = document.createElement(balise);
@@ -21,6 +45,16 @@ function texte(balise, classe, contenu) {
 export function remplirSplash(m = marque, doc = document) {
   const splash = doc.getElementById('splash');
   if (!splash) return;
+  if (!jouer) {
+    // Pas un lancement : ni logo ni nom, l'ecran part des que l'app est la.
+    splash.classList.add('splash-rapide');
+    return;
+  }
+  try {
+    sessionStorage.setItem(CLE, '1');
+  } catch {
+    // navigation privee : sans consequence
+  }
   const r = doc.documentElement.style;
   splash.style.setProperty('--splash-halo', `rgb(${r.getPropertyValue('--marque').trim().split(' ').join(',')})`);
   splash.style.setProperty('--splash-fond', `rgb(${r.getPropertyValue('--marque-nuit').trim().split(' ').join(',')})`);
@@ -54,14 +88,14 @@ export function masquerSplash(doc = document) {
   if (sortie) return sortie;
   const splash = doc.getElementById('splash');
   if (!splash) return Promise.resolve();
-  const attente = Math.max(0, DUREE_MIN - (Date.now() - debut));
+  const attente = jouer ? Math.max(0, DUREE_MIN - (Date.now() - debut)) : 0;
   sortie = new Promise((resolve) => {
     setTimeout(() => {
       splash.classList.add('splash-sortie');
       setTimeout(() => {
         splash.remove();
         resolve();
-      }, 900);
+      }, jouer ? 900 : 250);
     }, attente);
   });
   return sortie;

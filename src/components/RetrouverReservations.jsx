@@ -4,6 +4,7 @@ import { changerPin, demanderCodeRecuperation, retrouverReservations } from '../
 import ChampPin from './ChampPin';
 import { formaterTelephone, normaliserTelephone } from '../utils/telephone';
 import { refusPin } from '../utils/pin';
+import { retenirPin } from '../utils/pinMemorise';
 
 const champ = 'mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary';
 
@@ -49,7 +50,7 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
     executer(async () => {
       const r = await retrouverReservations(tel, pin);
       if (!r.length) setErreur('Aucune réservation avec ce numéro et ce code PIN.');
-      else { onRetrouvees(r); setPin(''); }
+      else { retenirPin(tel, pin); onRetrouvees(r); setPin(''); }
     });
   };
 
@@ -75,6 +76,7 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
     }
     executer(async () => {
       const r = await changerPin(tel, code, nouveauPin);
+      retenirPin(tel, nouveauPin);
       onRetrouvees(r);
       setEtape('pin');
       setCode('');
