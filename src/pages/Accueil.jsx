@@ -1,16 +1,52 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getSports, getTerrains } from '../api/terrains';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { SearchX } from 'lucide-react';
+import { getHoraires, getSports, getTerrains } from '../api/terrains';
 import { ecouterChangements } from '../api/tempsReel';
 import CarteTerrain from '../components/CarteTerrain';
+import BarreRecherche from '../components/BarreRecherche';
+import BarreSports from '../components/BarreSports';
+import InfosComplexe from '../components/InfosComplexe';
+import BoutonNotif from '../components/BoutonNotif';
+import MotifTerrain from '../components/MotifTerrain';
 import { Monogramme, NomMarque } from '../components/Marque';
-import { EtatErreur, SqueletteGrille } from '../components/EtatChargement';
+import { EtatErreur, Squelette } from '../components/EtatChargement';
 import { marque, sloganEnDeuxLignes } from '../config/marque';
+import { estVideo, filtrerTerrains, photosDe } from '../utils/recherche';
+
+function SqueletteAnnonces({ nb = 6 }) {
+  return (
+    <div role="status" aria-busy="true" aria-label="Chargement des terrains"
+      className="grid gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: nb }, (_, i) => (
+        <div key={i}>
+          <Squelette className="aspect-[4/3] rounded-xl" />
+          <Squelette className="mt-3 h-4 w-2/3 rounded" />
+          <Squelette className="mt-2 h-3 w-1/2 rounded" />
+          <Squelette className="mt-2 h-4 w-1/3 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Accueil() {
   const [sports, setSports] = useState([]);
   const [terrains, setTerrains] = useState(null);
+  const [horaires, setHoraires] = useState(null);
   const [erreur, setErreur] = useState(null);
-  const [sport, setSport] = useState(null);
+  // Recherche et sport dans l'adresse : retour depuis un terrain = meme liste.
+  const [params, setParams] = useSearchParams();
+  const q = params.get('q') || '';
+  const sport = params.get('sport') ? Number(params.get('sport')) : null;
+  const [colle, setColle] = useState(false);
+  const repere = useRef(null);
+
+  const majParams = (cle, valeur) => setParams((p) => {
+    const n = new URLSearchParams(p);
+    if (valeur === null || valeur === '') n.delete(cle); else n.set(cle, String(valeur));
+    return n;
+  }, { replace: true });
 
   const charger = useCallback(() => {
     setErreur(null);
@@ -20,6 +56,7 @@ export default function Accueil() {
         setTerrains(t);
       })
       .catch((e) => setErreur(e.message));
+    getHoraires().then(setHoraires).catch(() => setHoraires(null));
   }, []);
 
   useEffect(() => {
@@ -27,56 +64,105 @@ export default function Accueil() {
     return ecouterChangements(['terrains'], charger);
   }, [charger]);
 
-  const visibles = useMemo(
-    () => (terrains || []).filter((t) => sport === null || t.sportId === sport),
-    [terrains, sport],
-  );
+  // Barre de recherche collee en haut : fond blanc sous la barre.
+  useEffect(() => {
+    const el = repere.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const obs = new IntersectionObserver(([e]) => setColle(!e.isIntersecting), { rootMargin: '-72px 0px 0px 0px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  const visibles = useMemo(() => filtrerTerrains(terrains, q, sport), [terrains, q, sport]);
+  // Fond du bandeau : la premiere PHOTO d'un terrain (pas une video).
+  const couverture = useMemo(() => (terrains || []).flatMap(photosDe).find((u) => !estVideo(u)), [terrains]);
   const { ligne1, ligne2 } = sloganEnDeuxLignes();
+  const filtre = q.trim() !== '' || sport !== null;
 
   return (
-    <main className="mx-auto max-w-6xl">
-      <section className="bg-[rgb(var(--marque-nuit))] px-4 pb-8 pt-[calc(1.5rem+env(safe-area-inset-top))] text-white sm:px-6 md:rounded-b-lg md:pt-10">
-        <div className="flex items-center gap-3 md:hidden">
-          <Monogramme className="h-11 w-11 rounded-xl text-base" />
-          <NomMarque className="text-lg font-bold tracking-tight" accentClassName="text-primary-light" />
+    <main>
+      <section className="relative isolate overflow-hidden bg-[rgb(var(--marque-nuit))] text-white md:mx-auto md:mt-4 md:max-w-6xl md:rounded-xl">
+        {couverture && (
+          <img src={couverture} alt="" aria-hidden="true" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
+        )}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[rgb(var(--marque-nuit))] via-[rgb(var(--marque-nuit)/0.72)] to-[rgb(var(--marque-nuit)/0.35)]" />
+        <MotifTerrain className="absolute -right-24 -top-10 -z-10 h-[130%] w-[520px] text-white/10 md:right-0" />
+        <div className="px-5 pb-16 pt-[calc(1.25rem+env(safe-area-inset-top))] sm:px-8 md:pb-20 md:pt-14">
+          <div className="flex items-center gap-2.5 md:hidden">
+            <Monogramme className="h-10 w-10 rounded-xl text-base" />
+            <NomMarque className="titre-display flex-1 text-2xl" accentClassName="text-primary-light" />
+            <BoutonNotif sombre />
+          </div>
+          <h1 className="titre-display mt-10 max-w-xl text-[46px] sm:text-6xl md:mt-0 md:text-7xl">
+            {ligne1}
+            {ligne2 && <span className="block text-primary-light">{ligne2}</span>}
+          </h1>
+          <p className="mt-3 max-w-md text-[15px] text-white/80">{marque.sousTitre}</p>
+          {terrains?.length > 0 && (
+            <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-primary-light" aria-hidden="true" />
+              {terrains.length} terrain{terrains.length > 1 ? 's' : ''} · réservation en direct
+            </p>
+          )}
         </div>
-        <h1 className="mt-6 text-2xl font-bold leading-tight sm:text-3xl md:mt-0">
-          {ligne1}
-          {ligne2 && <span className="block text-primary-light">{ligne2}</span>}
-        </h1>
-        <p className="mt-2 text-sm text-white/75">{marque.sousTitre}</p>
       </section>
 
-      <section className="px-4 py-6 sm:px-6">
-        <h2 className="text-lg font-bold">Choisissez votre terrain</h2>
+      <div ref={repere} aria-hidden="true" />
+      <div className={`sticky top-0 z-40 -mt-7 px-4 pb-3 transition-colors sm:px-6 md:top-16 ${colle ? 'bg-surface/95 pt-3 shadow-[0_1px_0_rgba(0,0,0,0.06)] backdrop-blur' : ''}`}>
+        <div className="mx-auto max-w-2xl">
+          <BarreRecherche valeur={q} onChange={(v) => majParams('q', v)} terrains={terrains || []} sports={sports} />
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {sports.length > 1 && (
-          <div role="radiogroup" aria-label="Sport" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
-            {[{ id: null, nom: 'Tous' }, ...sports].map((s) => (
-              <button key={s.id ?? 'tous'} type="button" role="radio" aria-checked={sport === s.id} onClick={() => setSport(s.id)}
-                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                  sport === s.id ? 'border-primary bg-primary text-white' : 'border-line bg-surface text-ink hover:border-primary/40'}`}>
-                {s.nom}
-              </button>
-            ))}
+          <div className="mt-3">
+            <BarreSports sports={sports} valeur={sport} onChange={(id) => majParams('sport', id)} />
           </div>
         )}
 
-        <div className="mt-4">
+        <section className="pt-6" aria-live="polite">
+          {terrains && !erreur && (
+            <div className="mb-5 flex items-baseline justify-between gap-3">
+              <h2 className="text-lg font-bold">
+                {filtre
+                  ? `${visibles.length} terrain${visibles.length > 1 ? 's' : ''}${q.trim() ? ` pour « ${q.trim()} »` : ''}`
+                  : 'Tous les terrains'}
+              </h2>
+              {filtre && (
+                <button type="button" onClick={() => setParams({}, { replace: true })}
+                  className="shrink-0 text-sm font-semibold underline underline-offset-4">
+                  Tout afficher
+                </button>
+              )}
+            </div>
+          )}
+
           {erreur ? (
             <EtatErreur titre="Les terrains n'ont pas pu être chargés" message={erreur} onReessayer={charger} />
           ) : terrains === null ? (
-            <SqueletteGrille nb={4} />
+            <SqueletteAnnonces />
           ) : visibles.length === 0 ? (
-            <p className="rounded-md bg-surface-alt p-6 text-center text-sm text-ink-light">Aucun terrain disponible pour le moment.</p>
+            <div className="flex flex-col items-center rounded-xl border border-dashed border-line px-6 py-12 text-center">
+              <SearchX size={36} className="text-ink-light" aria-hidden="true" />
+              <p className="mt-3 font-semibold">{terrains.length ? 'Aucun terrain ne correspond' : 'Aucun terrain disponible pour le moment'}</p>
+              {terrains.length > 0 && (
+                <p className="mt-1 max-w-xs text-sm text-ink-light">Essayez un autre nom, un quartier ou un sport.</p>
+              )}
+            </div>
           ) : (
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
               {visibles.map((t) => (
                 <li key={t.id} className="min-w-0"><CarteTerrain terrain={t} /></li>
               ))}
             </ul>
           )}
+        </section>
+
+        <div className="mt-12">
+          <InfosComplexe horaires={horaires} />
         </div>
-      </section>
+      </div>
     </main>
   );
 }

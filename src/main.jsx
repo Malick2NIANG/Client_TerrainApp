@@ -3,13 +3,15 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 import { appliquerMarque } from './config/marque';
+import { masquerSplash, remplirSplash } from './splash';
 
 // Couleur, titre de l'onglet : la marque du complexe, avant le 1er rendu.
 appliquerMarque();
+remplirSplash();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <App onPret={masquerSplash} />
   </React.StrictMode>
 );
 

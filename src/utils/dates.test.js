@@ -16,3 +16,14 @@ describe('dates a l heure de Dakar', () => {
     expect(j[2].numero).toBe('22');
   });
 });
+
+describe('horaires du complexe', () => {
+  it('jour de la semaine a Dakar, lundi = 1', async () => {
+    const { jourSemaine, horaireDuJour } = await import('./dates');
+    expect(jourSemaine(new Date('2026-11-16T10:00:00Z'))).toBe(1);
+    expect(jourSemaine(new Date('2026-11-22T23:30:00Z'))).toBe(7);
+    const horaires = [{ jour: 1, ouvert: true, ouverture: '08:00:00', fermeture: '01:00:00' }, { jour: 7, ouvert: false }];
+    expect(horaireDuJour(horaires, new Date('2026-11-16T10:00:00Z'))).toBe('08:00 – 01:00');
+    expect(horaireDuJour(horaires, new Date('2026-11-22T10:00:00Z'))).toBeNull();
+  });
+});

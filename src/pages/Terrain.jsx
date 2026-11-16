@@ -1,13 +1,61 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Clock, Users } from 'lucide-react';
+import {
+  ArrowLeft, CalendarCheck, Clock, Layers, MapPin, QrCode, Share2, Timer, Users,
+} from 'lucide-react';
 import { getDisponibilites, getTerrain } from '../api/terrains';
 import { ecouterChangements } from '../api/tempsReel';
 import ChoixJour from '../components/ChoixJour';
 import GrilleCreneaux from '../components/GrilleCreneaux';
+import CarrouselPhotos from '../components/CarrouselPhotos';
+import MosaiquePhotos from '../components/MosaiquePhotos';
+import GaleriePlein from '../components/GaleriePlein';
+import Visionneuse from '../components/Visionneuse';
+import { IconeEquipement, IconeSport } from '../components/Icones';
+import { MixxRond, OrangeMoneyRond, WaveRond } from '../components/LogosPaiement';
 import { EtatErreur, Squelette } from '../components/EtatChargement';
-import { jourISO, plage } from '../utils/dates';
+import { useToast } from '../context/ToastContext';
+import { dateLongue, hhmm, jourISO, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
+import { libelleMedias, photosDe, tarifMin } from '../utils/recherche';
+import { joursEnClair } from '../utils/tarifs';
+
+function Partager({ terrain, className = '' }) {
+  const { showToast } = useToast();
+  const partager = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: terrain.nom, text: `${terrain.nom} · ${terrain.sport}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        showToast('Lien copié : envoyez-le à votre équipe.', { type: 'succes' });
+      }
+    } catch {
+      // Partage annule par l'utilisateur : rien a signaler.
+    }
+  };
+  return (
+    <button type="button" onClick={partager} aria-label="Partager ce terrain" className={className}>
+      <Share2 size={18} aria-hidden="true" />
+      <span className="hidden md:inline">Partager</span>
+    </button>
+  );
+}
+
+function Fait({ Icone, titre, texte }) {
+  return (
+    <li className="flex items-center gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface-alt text-ink">{Icone}</span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{titre}</span>
+        <span className="block truncate text-sm text-ink-light">{texte}</span>
+      </span>
+    </li>
+  );
+}
+
+const Titre = ({ children, id }) => <h2 id={id} className="text-xl font-bold">{children}</h2>;
 
 export default function Terrain() {
   const { id } = useParams();
@@ -17,10 +65,17 @@ export default function Terrain() {
   const [jour, setJour] = useState(jourISO());
   const [creneaux, setCreneaux] = useState(null);
   const [choisi, setChoisi] = useState(null);
+  const [galerie, setGalerie] = useState(null);
+  const [visionneuse, setVisionneuse] = useState(null);
+  const blocCreneaux = useRef(null);
 
-  useEffect(() => {
+  const chargerTerrain = useCallback(() => {
     getTerrain(id).then(setTerrain).catch((e) => setErreur(e.message));
   }, [id]);
+
+  useEffect(() => {
+    chargerTerrain();
+  }, [chargerTerrain]);
 
   const chargerCreneaux = useCallback(() => {
     getDisponibilites(jour, id)
@@ -37,82 +92,202 @@ export default function Terrain() {
     setCreneaux(null);
     setChoisi(null);
     chargerCreneaux();
-    return ecouterChangements(['disponibilites', 'terrains'], chargerCreneaux);
-  }, [chargerCreneaux]);
+    return ecouterChangements(['disponibilites', 'terrains'], () => {
+      chargerCreneaux();
+      chargerTerrain();
+    });
+  }, [chargerCreneaux, chargerTerrain]);
 
   if (erreur && !terrain) {
     return <main className="mx-auto max-w-3xl p-4"><EtatErreur titre="Ce terrain n'est pas disponible" message={erreur} onReessayer={() => window.location.reload()} /></main>;
   }
 
-  const reserver = () => navigate('/reserver', { state: { terrain, creneau: choisi } });
+  const photos = photosDe(terrain);
+  const versCreneaux = () => blocCreneaux.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const reserver = () => (choisi ? navigate('/reserver', { state: { terrain, creneau: choisi } }) : versCreneaux());
+  const min = terrain ? tarifMin(terrain) : 0;
+
+  const prixEtAction = (
+    <>
+      <div className="min-w-0 flex-1">
+        {choisi ? (
+          <>
+            <p className="truncate text-[15px] font-bold">{formatPrix(choisi.prix)}</p>
+            <p className="truncate text-sm text-ink-light first-letter:uppercase">{dateLongue(choisi.debut)} · {plage(choisi.debut, choisi.fin)}</p>
+          </>
+        ) : terrain ? (
+          <>
+            <p className="truncate text-[15px]">
+              {min < terrain.tarifHeure && <span className="text-ink-light">dès </span>}
+              <span className="font-bold">{formatPrix(min)}</span><span className="text-ink-light"> / heure</span>
+            </p>
+            <p className="truncate text-sm text-ink-light">Choisissez un créneau</p>
+          </>
+        ) : <Squelette className="h-5 w-32 rounded" />}
+      </div>
+      <button type="button" onClick={reserver} disabled={!terrain}
+        className="h-12 shrink-0 rounded-xl bg-primary px-6 text-[15px] font-semibold text-white shadow-card transition-colors hover:bg-primary-dark disabled:opacity-60">
+        {choisi ? 'Réserver' : 'Voir les créneaux'}
+      </button>
+    </>
+  );
 
   return (
-    <main className="mx-auto max-w-3xl pb-24 md:pb-6">
-      <div className="relative bg-primary/10 md:mt-4 md:overflow-hidden md:rounded-lg">
-        {terrain?.photoUrl ? (
-          <img src={terrain.photoUrl} alt="" className="aspect-[16/9] w-full object-cover sm:aspect-[21/9]" />
-        ) : (
-          <div className="aspect-[21/9] w-full bg-gradient-to-br from-primary/30 to-primary/5" />
-        )}
-        <Link to="/" aria-label="Retour aux terrains"
-          className="absolute left-3 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-card">
-          <ArrowLeft size={20} aria-hidden="true" />
-        </Link>
-      </div>
-
-      <section className="px-4 pt-4 sm:px-6">
-        {terrain ? (
-          <>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">{terrain.sport}</p>
-            <h1 className="text-2xl font-bold">{terrain.nom}</h1>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-light">
-              <span className="inline-flex items-center gap-1"><Users size={15} aria-hidden="true" /> {terrain.capacite} joueurs</span>
-              <span className="inline-flex items-center gap-1"><Clock size={15} aria-hidden="true" /> Créneaux de {terrain.dureeCreneauMinutes} min</span>
-              {terrain.surface && <span>{terrain.surface}</span>}
-            </div>
-            {terrain.description && <p className="mt-3 text-sm">{terrain.description}</p>}
-            {terrain.equipements.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {terrain.equipements.map((e) => (
-                  <li key={e} className="inline-flex items-center gap-1 rounded-full bg-surface-alt px-3 py-1 text-xs">
-                    <Check size={12} className="text-success" aria-hidden="true" /> {e}
-                  </li>
-                ))}
-              </ul>
+    <main className="mx-auto max-w-6xl md:px-6">
+      <div className="flex flex-col">
+        {/* Telephone : photos d'abord, en plein largeur. */}
+        <div className="relative md:hidden">
+          <CarrouselPhotos photos={photos} alt={terrain?.nom || ''} ratio="aspect-[4/3]" onOuvrir={setVisionneuse}>
+            {photos.length > 0 && (
+              <button type="button" onClick={() => setGalerie(0)} aria-label={`Voir les ${libelleMedias(photos)}`}
+                className="absolute bottom-3 right-3 rounded-md bg-ink/70 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">
+                {libelleMedias(photos)}
+              </button>
             )}
-          </>
-        ) : (
-          <div className="space-y-2"><Squelette className="h-4 w-24" /><Squelette className="h-7 w-48" /></div>
-        )}
-      </section>
-
-      <section className="mt-6 px-4 sm:px-6">
-        <h2 className="mb-3 font-bold">Choisissez un créneau</h2>
-        <ChoixJour valeur={jour} onChange={setJour} />
-        <div className="mt-4">
-          {creneaux === null ? (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {Array.from({ length: 9 }, (_, i) => <Squelette key={i} className="h-14 rounded-md" />)}
-            </div>
-          ) : (
-            <GrilleCreneaux creneaux={creneaux} choisi={choisi?.debut} onChoisir={setChoisi} />
+          </CarrouselPhotos>
+          <Link to="/" aria-label="Retour aux terrains"
+            className="absolute left-4 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-card">
+            <ArrowLeft size={20} aria-hidden="true" />
+          </Link>
+          {terrain && (
+            <Partager terrain={terrain}
+              className="absolute right-4 top-[calc(0.75rem+env(safe-area-inset-top))] flex h-10 w-10 items-center justify-center rounded-full bg-white/95 shadow-card" />
           )}
         </div>
-      </section>
 
-      {choisi && terrain && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[90] border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:static md:mx-6 md:mt-6 md:rounded-lg md:border">
-          <div className="mx-auto flex max-w-3xl items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold">{plage(choisi.debut, choisi.fin)}</p>
-              <p className="text-sm text-primary">{formatPrix(choisi.prix)}</p>
+        {/* En-tete de l'annonce. */}
+        <header className="px-5 pt-5 md:mt-6 md:px-0 md:pt-0">
+          <Link to="/" className="mb-4 hidden items-center gap-1.5 text-sm font-semibold text-ink-light hover:text-ink md:inline-flex">
+            <ArrowLeft size={16} aria-hidden="true" /> Tous les terrains
+          </Link>
+          {terrain ? (
+            <div className="flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                  <IconeSport nom={terrain.sport} size={16} /> {terrain.sport}
+                </p>
+                <h1 className="titre-display mt-1 text-[40px] md:text-5xl">{terrain.nom}</h1>
+                {terrain.localite && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-[15px] text-ink-light">
+                    <MapPin size={16} aria-hidden="true" /> {terrain.localite}
+                  </p>
+                )}
+              </div>
+              <Partager terrain={terrain}
+                className="hidden shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold underline-offset-4 hover:bg-surface-alt hover:underline md:inline-flex" />
             </div>
-            <button type="button" onClick={reserver}
-              className="h-12 shrink-0 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-card hover:bg-primary-dark">
-              Réserver
-            </button>
-          </div>
+          ) : (
+            <div className="space-y-2"><Squelette className="h-4 w-24 rounded" /><Squelette className="h-9 w-56 rounded" /></div>
+          )}
+        </header>
+
+        {/* Ordinateur / tablette : mosaique de photos. */}
+        <div className="mt-6 hidden md:block">
+          {terrain ? <MosaiquePhotos photos={photos} titre={terrain.nom} onOuvrir={setVisionneuse} onToutVoir={() => setGalerie(0)} /> : <Squelette className="aspect-[21/9] rounded-xl" />}
         </div>
+      </div>
+
+      <div className="px-5 pb-4 md:px-0 md:pb-10 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-16">
+        <div className="min-w-0">
+          {terrain && (
+            <>
+              <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-b border-line pb-7 sm:grid-cols-4 md:mt-8">
+                <Fait Icone={<Users size={20} aria-hidden="true" />} titre={`${terrain.capacite} joueurs`} texte="Capacité" />
+                <Fait Icone={<Timer size={20} aria-hidden="true" />} titre={`${terrain.dureeCreneauMinutes} min`} texte="Par créneau" />
+                {terrain.surface && <Fait Icone={<Layers size={20} aria-hidden="true" />} titre={terrain.surface} texte="Surface" />}
+                <Fait Icone={<QrCode size={20} aria-hidden="true" />} titre="Ticket QR" texte="Sans compte" />
+              </ul>
+
+              {terrain.description && (
+                <section className="border-b border-line py-7">
+                  <p className="whitespace-pre-line text-[15px] leading-relaxed">{terrain.description}</p>
+                </section>
+              )}
+
+              {terrain.equipements.length > 0 && (
+                <section className="border-b border-line py-7" aria-labelledby="equipements">
+                  <Titre id="equipements">Ce que propose ce terrain</Titre>
+                  <ul className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+                    {terrain.equipements.map((e) => (
+                      <li key={e} className="flex items-center gap-4 text-[15px]">
+                        <IconeEquipement libelle={e} size={22} className="shrink-0 text-ink" /> {e}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <section className="border-b border-line py-7" aria-labelledby="tarifs">
+                <Titre id="tarifs">Tarifs</Titre>
+                <ul className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-line">
+                  <li className="flex items-center justify-between gap-3 px-4 py-3.5">
+                    <span><span className="block font-semibold">Tarif de base</span><span className="text-sm text-ink-light">Hors plages ci-dessous</span></span>
+                    <span className="whitespace-nowrap font-bold">{formatPrix(terrain.tarifHeure)}<span className="font-normal text-ink-light"> / h</span></span>
+                  </li>
+                  {terrain.plages.map((p) => (
+                    <li key={p.id ?? `${p.libelle}-${p.debut}`} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                      <span>
+                        <span className="block font-semibold">{p.libelle}</span>
+                        <span className="text-sm text-ink-light">{joursEnClair(p.jours)} · {hhmm(p.debut)} – {hhmm(p.fin)}</span>
+                      </span>
+                      <span className="whitespace-nowrap font-bold">{formatPrix(p.tarifHeure)}<span className="font-normal text-ink-light"> / h</span></span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-sm text-ink-light">
+                  Le prix d’un créneau de {terrain.dureeCreneauMinutes} min est calculé au prorata, selon l’heure de début.
+                </p>
+              </section>
+            </>
+          )}
+
+          <section ref={blocCreneaux} className="scroll-mt-24 py-7" aria-labelledby="creneaux">
+            <Titre id="creneaux">Choisissez un créneau</Titre>
+            <div className="mt-4"><ChoixJour valeur={jour} onChange={setJour} /></div>
+            <div className="mt-4">
+              {creneaux === null ? (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+                  {Array.from({ length: 9 }, (_, i) => <Squelette key={i} className="h-14 rounded-md" />)}
+                </div>
+              ) : (
+                <GrilleCreneaux creneaux={creneaux} choisi={choisi?.debut} onChoisir={setChoisi} />
+              )}
+            </div>
+          </section>
+
+          <section className="border-t border-line py-7" aria-labelledby="savoir">
+            <Titre id="savoir">Bon à savoir</Titre>
+            <ul className="mt-4 space-y-3 text-[15px]">
+              <li className="flex gap-3"><CalendarCheck size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Réservation confirmée dès le paiement : le créneau est à vous.</li>
+              <li className="flex gap-3"><QrCode size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Présentez le ticket QR (ou sa référence) à l’entrée.</li>
+              <li className="flex gap-3"><Clock size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Arrivez 10 minutes avant le début pour vous changer.</li>
+            </ul>
+          </section>
+        </div>
+
+        {/* Ordinateur : carte de reservation qui suit le defilement. */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 mt-8 rounded-xl border border-line p-6 shadow-float">
+            <div className="flex flex-col gap-4">{prixEtAction}</div>
+            <div className="mt-5 flex items-center gap-3 border-t border-line pt-4 text-sm text-ink-light">
+              <span className="flex -space-x-2 [&>span]:h-7 [&>span]:w-7 [&>span]:ring-2 [&>span]:ring-white"><WaveRond /><OrangeMoneyRond /><MixxRond /></span>
+              Wave, Orange Money, Mixx ou carte
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Telephone / tablette : barre de reservation en bas. */}
+      <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-line bg-surface/95 px-5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-3xl items-center gap-3">{prixEtAction}</div>
+      </div>
+
+      {galerie !== null && terrain && (
+        <GaleriePlein photos={photos} titre={terrain.nom} depart={galerie} onFermer={() => setGalerie(null)}
+          onOuvrir={setVisionneuse} actif={visionneuse === null} />
+      )}
+      {visionneuse !== null && terrain && (
+        <Visionneuse medias={photos} titre={terrain.nom} depart={visionneuse} onFermer={() => setVisionneuse(null)} />
       )}
     </main>
   );

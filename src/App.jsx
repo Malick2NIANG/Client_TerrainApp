@@ -1,17 +1,31 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import { ToastProvider } from './context/ToastContext';
 import { MesReservationsProvider } from './context/MesReservationsContext';
+import { NotifProvider, useNotif } from './context/NotifContext';
 import Accueil from './pages/Accueil';
 import Terrain from './pages/Terrain';
 import Reserver from './pages/Reserver';
 import Reservation from './pages/Reservation';
 import MesReservations from './pages/MesReservations';
 
-export default function App() {
+// Premier rendu fait : l'ecran de demarrage part, puis les annonces
+// non vues s'ouvrent.
+function Demarrage({ onPret }) {
+  const { signalerPret } = useNotif();
+  useEffect(() => {
+    Promise.resolve(onPret?.()).then(signalerPret);
+  }, [onPret, signalerPret]);
+  return null;
+}
+
+export default function App({ onPret }) {
   return (
     <BrowserRouter>
       <ToastProvider>
+        <NotifProvider>
+        <Demarrage onPret={onPret} />
         <MesReservationsProvider>
           <Routes>
             <Route element={<Layout />}>
@@ -24,6 +38,7 @@ export default function App() {
             </Route>
           </Routes>
         </MesReservationsProvider>
+        </NotifProvider>
       </ToastProvider>
     </BrowserRouter>
   );

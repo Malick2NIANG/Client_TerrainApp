@@ -37,3 +37,17 @@ export const dateLongue = (instant) => DATE_LONGUE.format(new Date(instant));
 
 /** "19:00 – 20:00" */
 export const plage = (debut, fin) => `${heure(debut)} – ${heure(fin)}`;
+
+/** Jour de la semaine a Dakar : 1 = lundi ... 7 = dimanche. */
+export function jourSemaine(date = new Date()) {
+  return ((new Date(date).getUTCDay() + 6) % 7) + 1;
+}
+
+/** "08:00:00" -> "08:00" */
+export const hhmm = (t) => String(t || '').slice(0, 5);
+
+/** Horaires du jour : "08:00 – 01:00", ou null si ferme. */
+export function horaireDuJour(horaires, date = new Date()) {
+  const h = (horaires || []).find((x) => x.jour === jourSemaine(date));
+  return h && h.ouvert ? `${hhmm(h.ouverture)} – ${hhmm(h.fermeture)}` : null;
+}

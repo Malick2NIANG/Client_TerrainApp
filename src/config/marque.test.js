@@ -71,7 +71,7 @@ describe('outils', () => {
     appliquerMarque(marque, document);
     expect(document.documentElement.style.getPropertyValue('--marque')).toBe('0 56 129');
     expect(document.title).toBe('Le Baobab');
-    expect(meta.getAttribute('content')).toBe('#003881');
+    expect(meta.getAttribute('content')).toBe('rgb(0,14,32)');
     meta.remove();
   });
 });

@@ -42,6 +42,15 @@ else
   [ ${#INITIALES} -ge 2 ] || INITIALES=$(printf '%s' "$NOM" | cut -c1-2 | tr 'a-z' 'A-Z')
 fi
 
+# Teinte "nuit" de la marque (fond de l'ecran de demarrage, barre du
+# navigateur) : la couleur a 25 %, comme src/config/marque.js.
+HEX=${COULEUR#\#}
+R=$(( (0x$(printf '%s' "$HEX" | cut -c1-2) * 25 + 50) / 100 ))
+V=$(( (0x$(printf '%s' "$HEX" | cut -c3-4) * 25 + 50) / 100 ))
+B=$(( (0x$(printf '%s' "$HEX" | cut -c5-6) * 25 + 50) / 100 ))
+NUIT=$(printf '#%02X%02X%02X' "$R" "$V" "$B")
+case "$NUIT" in \#??????) ;; *) NUIT="#081F13" ;; esac
+
 cat > "$HTML/config.js" <<EOF
 // Genere au demarrage du conteneur (docker/40-config-runtime.sh).
 window.__TERRAINAPP_CONFIG__ = {
@@ -66,8 +75,8 @@ EOF
 NOM_HTML=$(echapper_sed "$(echapper_html "$NOM")")
 NOM_JSON=$(echapper_sed "$(echapper "$NOM")")
 INITIALES_SVG=$(echapper_sed "$(echapper_html "$INITIALES")")
-sed -e "s|TerrainApp|$NOM_HTML|g" -e "s|#1F7A4D|$COULEUR|g" "$MODELES/index.html" > "$HTML/index.html"
-sed -e "s|TerrainApp|$NOM_JSON|g" -e "s|#1F7A4D|$COULEUR|g" "$MODELES/manifest.webmanifest" > "$HTML/manifest.webmanifest"
+sed -e "s|TerrainApp|$NOM_HTML|g" -e "s|#1F7A4D|$COULEUR|g" -e "s|#081F13|$NUIT|g" "$MODELES/index.html" > "$HTML/index.html"
+sed -e "s|TerrainApp|$NOM_JSON|g" -e "s|#1F7A4D|$COULEUR|g" -e "s|#081F13|$NUIT|g" "$MODELES/manifest.webmanifest" > "$HTML/manifest.webmanifest"
 for icone in icon.svg maskable.svg; do
   sed -e "s|#1F7A4D|$COULEUR|g" -e "s|>TA<|>$INITIALES_SVG<|" "$MODELES/$icone" > "$HTML/icons/$icone"
 done
