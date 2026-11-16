@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { ChevronDown, KeyRound, Smartphone } from 'lucide-react';
 import { changerPin, demanderCodeRecuperation, retrouverReservations } from '../api/reservations';
 import ChampPin from './ChampPin';
-import { formaterTelephone, normaliserTelephone } from '../utils/telephone';
+import ChampTelephone from './ChampTelephone';
+import { formaterTelephone, telephoneDepuisLocal } from '../utils/telephone';
 import { refusPin } from '../utils/pin';
 import { retenirPin } from '../utils/pinMemorise';
 
-const champ = 'mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary';
 
 // Retrouver ses reservations sur un autre telephone : numero + code PIN
 // (choisi a la reservation). PIN oublie : code de recuperation par SMS,
@@ -22,13 +22,13 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
   const [info, setInfo] = useState(null);
-  const tel = normaliserTelephone(telephone);
+  const tel = telephoneDepuisLocal(telephone);
 
   const executer = async (action) => {
     setErreur(null);
     setInfo(null);
     if (!tel) {
-      setErreur('Numéro sénégalais à 9 chiffres (ex. 77 123 45 67).');
+      setErreur('Numéro à 9 chiffres (ex. 77 123 45 67).');
       return;
     }
     setEnvoi(true);
@@ -107,11 +107,7 @@ export default function RetrouverReservations({ telephoneInitial = '', onRetrouv
       )}
 
       <form onSubmit={etape === 'pin' ? chercher : etape === 'demande' ? envoyerCode : valider} noValidate className="mt-4 space-y-3">
-        <label className="block text-sm">
-          <span className="font-semibold">Numéro de téléphone</span>
-          <input value={telephone} onChange={(e) => setTelephone(e.target.value)} inputMode="tel" autoComplete="tel"
-            placeholder="77 123 45 67" disabled={etape === 'code'} className={`${champ} disabled:bg-surface-alt`} />
-        </label>
+        <ChampTelephone id="tel-retrouver" valeur={telephone} onChange={setTelephone} label="Numéro de téléphone" disabled={etape === 'code'} />
         {etape === 'pin' && <ChampPin id="pin-retrouver" valeur={pin} onChange={setPin} label="Code PIN" />}
         {etape === 'code' && (
           <>

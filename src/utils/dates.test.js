@@ -27,3 +27,15 @@ describe('horaires du complexe', () => {
     expect(horaireDuJour(horaires, new Date('2026-11-22T10:00:00Z'))).toBeNull();
   });
 });
+
+describe('telephone en deux cases', () => {
+  it('met en forme le numero local et refuse l indicatif tape', async () => {
+    const { formaterSaisieLocale, telephoneDepuisLocal } = await import('./telephone');
+    expect(formaterSaisieLocale('771234567')).toBe('77 123 45 67');
+    expect(formaterSaisieLocale('77 1234')).toBe('77 123 4');
+    expect(formaterSaisieLocale('+221 77 123 45 67')).toBe('77 123 45 67');
+    expect(formaterSaisieLocale('7712345678899')).toBe('77 123 45 67');
+    expect(telephoneDepuisLocal('77 123 45 67')).toBe('+221771234567');
+    expect(telephoneDepuisLocal('12 345 67 89')).toBeNull();
+  });
+});

@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, KeyRound, Lock } from 'lucide-react';
 import { reserver } from '../api/reservations';
 import MoyensPaiement from '../components/MoyensPaiement';
 import ChampPin from '../components/ChampPin';
+import ChampTelephone from '../components/ChampTelephone';
 import { refusPin } from '../utils/pin';
 import { pinRetenu, retenirPin } from '../utils/pinMemorise';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { nouvelleCle, urlPaiementSure } from '../utils/paiement';
-import { normaliserTelephone } from '../utils/telephone';
+import { formaterSaisieLocale, formaterTelephone, telephoneDepuisLocal } from '../utils/telephone';
 
 const CLE_CONTACT = 'terrainapp_contact_v1';
 
@@ -27,10 +28,12 @@ export default function Reserver() {
   const navigate = useNavigate();
   const { ajouter } = useMesReservations();
   const memo = contactMemorise();
-  const [nom, setNom] = useState(memo.nom || '');
-  const [telephone, setTelephone] = useState(memo.telephone || '');
-  const [pin, setPin] = useState(() => pinRetenu(normaliserTelephone(memo.telephone)));
-  const [pinConnu, setPinConnu] = useState(() => Boolean(pinRetenu(normaliserTelephone(memo.telephone))));
+  // Ancien format retenu ({ nom: "Awa Diop" }) : decoupe prenom / nom.
+  const [prenom, setPrenom] = useState(memo.prenom ?? (memo.nom || '').split(' ')[0] ?? '');
+  const [nom, setNom] = useState(memo.prenom !== undefined ? memo.nom || '' : (memo.nom || '').split(' ').slice(1).join(' '));
+  const [telephone, setTelephone] = useState(() => formaterSaisieLocale(formaterTelephone(memo.telephone || '') || memo.telephone || ''));
+  const [pin, setPin] = useState('');
+  const [pinConnu, setPinConnu] = useState(false);
   const [moyen, setMoyen] = useState('wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -39,7 +42,7 @@ export default function Reserver() {
   // coupure reseau ne reserve (et ne paie) jamais deux fois.
   const cle = useRef(nouvelleCle());
 
-  const telNormalise = normaliserTelephone(telephone);
+  const telNormalise = telephoneDepuisLocal(telephone);
 
   // Numero deja utilise sur ce telephone : son PIN est pre-rempli.
   useEffect(() => {
@@ -54,8 +57,9 @@ export default function Reserver() {
   const valider = async (e) => {
     e.preventDefault();
     const fautes = {};
+    if (prenom.trim().length < 2) fautes.prenom = 'Indiquez votre prénom.';
     if (nom.trim().length < 2) fautes.nom = 'Indiquez votre nom.';
-    if (!telNormalise) fautes.telephone = 'Numéro sénégalais à 9 chiffres (ex. 77 123 45 67).';
+    if (!telNormalise) fautes.telephone = 'Numéro à 9 chiffres (ex. 77 123 45 67).';
     const pinRefuse = refusPin(pin);
     if (pinRefuse) fautes.pin = pinRefuse;
     setChamps(fautes);
@@ -63,10 +67,10 @@ export default function Reserver() {
     setEnvoi(true);
     setErreur(null);
     try {
-      const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: nom.trim(),
+      const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: `${prenom.trim()} ${nom.trim()}`,
         clientTelephone: telNormalise, moyenPaiement: moyen, pin }, cle.current);
       try {
-        localStorage.setItem(CLE_CONTACT, JSON.stringify({ nom: nom.trim(), telephone }));
+        localStorage.setItem(CLE_CONTACT, JSON.stringify({ prenom: prenom.trim(), nom: nom.trim(), telephone: telNormalise }));
         retenirPin(telNormalise, pin);
       } catch {
         // facultatif
@@ -113,33 +117,52 @@ export default function Reserver() {
 
       <form id="form-reservation" onSubmit={valider} noValidate className="mt-6 space-y-5">
         <fieldset className="space-y-3">
-          <legend className="mb-1 font-bold">Vos coordonnées</legend>
-          <label className="block text-sm">
-            <span className="font-semibold">Nom</span>
-            <input value={nom} onChange={(e) => setNom(e.target.value)} autoComplete="name" maxLength={80}
-              aria-invalid={Boolean(champs.nom)}
-              className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
-            {champs.nom && <span className="mt-1 block text-xs text-danger">{champs.nom}</span>}
-          </label>
-          <label className="block text-sm">
-            <span className="font-semibold">Téléphone</span>
-            <input value={telephone} onChange={(e) => setTelephone(e.target.value)} inputMode="tel" autoComplete="tel"
-              placeholder="77 123 45 67" aria-invalid={Boolean(champs.telephone)}
-              className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
-            {champs.telephone ? (
-              <span className="mt-1 block text-xs text-danger">{champs.telephone}</span>
-            ) : (
-              <span className="mt-1 block text-xs text-ink-light">Pour vous joindre au sujet de votre réservation.</span>
-            )}
-          </label>
-          <ChampPin id="pin" valeur={pin} onChange={(v) => { setPin(v); setPinConnu(false); }} label="Code PIN (4 chiffres)" erreur={champs.pin}
-            aide={pinConnu
-              ? 'Votre code PIN habituel pour ce numéro, retenu sur ce téléphone. Gardez le même pour retrouver toutes vos réservations ensemble.'
-              : 'Choisissez-le et retenez-le : avec votre numéro, il permet de retrouver vos réservations et vos tickets sur un autre téléphone. Ne le partagez pas.'} />
+          <legend className="mb-1 flex items-center gap-2 font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs text-white">1</span> Vos coordonnées
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="font-semibold">Prénom</span>
+              <input value={prenom} onChange={(e) => setPrenom(e.target.value)} autoComplete="given-name" maxLength={40}
+                aria-invalid={Boolean(champs.prenom)} className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
+              {champs.prenom && <span className="mt-1 block text-xs text-danger">{champs.prenom}</span>}
+            </label>
+            <label className="block text-sm">
+              <span className="font-semibold">Nom</span>
+              <input value={nom} onChange={(e) => setNom(e.target.value)} autoComplete="family-name" maxLength={39}
+                aria-invalid={Boolean(champs.nom)} className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
+              {champs.nom && <span className="mt-1 block text-xs text-danger">{champs.nom}</span>}
+            </label>
+          </div>
+          <ChampTelephone id="telephone" valeur={telephone} onChange={setTelephone} erreur={champs.telephone}
+            aide="Pour vous joindre au sujet de votre réservation." />
+        </fieldset>
+
+        <fieldset className="rounded-xl border-2 border-primary/30 bg-primary/[0.04] p-4">
+          <legend className="flex items-center gap-2 px-1 font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs text-white">2</span>
+            {pinConnu ? 'Votre code PIN' : 'Créez votre code PIN'}
+          </legend>
+          <div className="flex gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white">
+              <KeyRound size={20} aria-hidden="true" />
+            </span>
+            <p className="text-sm text-ink-light">
+              {pinConnu
+                ? 'Déjà choisi pour ce numéro sur ce téléphone : gardez le même pour retrouver toutes vos réservations ensemble.'
+                : '4 chiffres à retenir. Avec votre numéro, il permet de retrouver vos réservations, tickets et reçus depuis un autre téléphone. Ne le partagez pas.'}
+            </p>
+          </div>
+          <div className="mt-3">
+            <ChampPin id="pin" valeur={pin} onChange={(v) => { setPin(v); setPinConnu(false); }} label="Code PIN (4 chiffres)"
+              erreur={champs.pin} />
+          </div>
         </fieldset>
 
         <fieldset>
-          <legend className="mb-3 font-bold">Paiement</legend>
+          <legend className="mb-3 flex items-center gap-2 font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs text-white">3</span> Paiement
+          </legend>
           <MoyensPaiement valeur={moyen} onChange={setMoyen} telephone={telNormalise} />
         </fieldset>
 
