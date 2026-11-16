@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Couleur de marque par defaut (TerrainApp), remplacee au demarrage par
+     src/config/marque.js. Triplets RGB pour les opacites Tailwind. */
+  :root {
+    --marque: 31 122 77;
+    --marque-fonce: 26 101 64;
+    --marque-clair: 111 211 158;
+    --marque-sombre: 17 67 42;
+    --marque-nuit: 8 31 19;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    margin: 0;
+    color: #141414;
+    background: #f8f9fa;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Poppins', Helvetica, Arial, sans-serif;
+    /* Evite le "rebond" qui laisse voir le fond au-dela de la page sur iOS
+       quand l'app est installee, et le rechargement par tirage sur Android. */
+    overscroll-behavior-y: none;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+    touch-action: manipulation;
+  }
+
+  /* 16px minimum : en dessous, Safari iOS zoome sur le champ au focus. */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    font-family: inherit;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
+
+@layer utilities {
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes popIn {
+    0% { opacity: 0; transform: scale(0.4); }
+    60% { opacity: 1; transform: scale(1.12); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes fadeUp {
+    0% { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes loading {
+    0% { width: 0%; }
+    100% { width: 100%; }
+  }
+
+  @keyframes halo {
+    0%, 100% { opacity: .55; transform: scale(.9); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  @keyframes anneau {
+    0% { opacity: 0; transform: scale(.7); }
+    40% { opacity: 1; }
+    100% { opacity: 0; transform: scale(1.35); }
+  }
+
+  @keyframes balance {
+    0%, 100% { transform: rotate(-4deg); }
+    50% { transform: rotate(4deg); }
+  }
+}
+
+/* Squelettes de chargement : bloc neutre + reflet qui balaie (la forme
+   annonce le contenu a venir, sans texte "Chargement..."). */
+@layer components {
+  .squelette {
+    position: relative;
+    overflow: hidden;
+    background: rgb(20 20 20 / 0.07);
+  }
+  .squelette::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+    animation: reflet 1.4s ease-in-out infinite;
+  }
+  @keyframes reflet {
+    100% { transform: translateX(100%); }
+  }
+}
+
+/* Barres de defilement : comme une appli mobile, aucune barre permanente
+   sur smartphone (mise en page < 768 px), sur ecran tactile et dans l'app
+   installee — le defilement au doigt / a la molette / au clavier reste
+   intact. Sur ordinateur, barre fine aux couleurs de l'app. */
+@media (max-width: 767px), (pointer: coarse), (display-mode: standalone) {
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+@media (min-width: 768px) and (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(20 20 20 / 0.22) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
