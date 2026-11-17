@@ -17,7 +17,7 @@ function Photo({ url, i, titre, onOuvrir, className = '' }) {
 export default function MosaiquePhotos({ photos, titre, onOuvrir, onToutVoir }) {
   if (!photos.length) {
     return (
-      <div className="flex aspect-[21/8] items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 via-primary/10 to-[rgb(var(--marque-nuit)/0.12)]">
+      <div className="flex aspect-[8/3] items-center justify-center rounded-xl bg-gradient-to-br from-primary/25 via-primary/10 to-[rgb(var(--marque-nuit)/0.12)]">
         <Monogramme className="h-16 w-16 rounded-2xl text-2xl" />
       </div>
     );
@@ -26,7 +26,9 @@ export default function MosaiquePhotos({ photos, titre, onOuvrir, onToutVoir }) 
   const colonnes = petites.length >= 3 ? 'grid-cols-4' : petites.length ? 'grid-cols-3' : 'grid-cols-1';
   return (
     <div className="relative">
-      <div className={`grid aspect-[21/9] gap-2 overflow-hidden rounded-xl ${colonnes} ${petites.length >= 3 ? 'grid-rows-2' : ''}`}>
+      {/* Ratios choisis pour que chaque case reste en 4:3, le cadre du recadrage
+          fait par le gérant : 8/3 (1 grande + 4 petites), 2/1 (1 + 1-2), 4:3 seule. */}
+      <div className={`grid gap-2 overflow-hidden rounded-xl ${colonnes} ${petites.length >= 3 ? 'aspect-[8/3] grid-rows-2' : petites.length ? 'aspect-[2/1]' : 'mx-auto aspect-[4/3] max-w-2xl'}`}>
         <Photo url={photos[0]} i={0} titre={titre} onOuvrir={onOuvrir}
           className={petites.length >= 3 ? 'col-span-2 row-span-2' : petites.length ? 'col-span-2' : ''} />
         {petites.length >= 3
