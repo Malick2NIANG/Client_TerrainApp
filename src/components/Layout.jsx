@@ -5,6 +5,7 @@ import TopBar from './TopBar';
 import ScrollEnHaut from './ScrollEnHaut';
 import AideSheet from './AideSheet';
 import EtatReseau from './EtatReseau';
+import NotifPopup from './NotifPopup';
 
 // Smartphone (< 768 px) : onglets en bas, a portee de pouce.
 // Tablette / ordinateur (>= 768 px) : barre de navigation en haut.
@@ -12,8 +13,8 @@ export default function Layout() {
   const { pathname } = useLocation();
   const [aide, setAide] = useState(false);
   const fermerAide = useCallback(() => setAide(false), []);
-  // Etape de reservation : barre d'action fixee en bas a la place des onglets.
-  const tunnel = pathname.startsWith('/reserver');
+  // Fiche terrain et reservation : barre d'action fixee en bas a la place des onglets.
+  const tunnel = pathname.startsWith('/reserver') || pathname.startsWith('/terrains/');
   return (
     <>
       <ScrollEnHaut />
@@ -33,6 +34,7 @@ export default function Layout() {
       {!tunnel && <NavBar />}
       <EtatReseau />
       <AideSheet ouvert={aide} onFermer={fermerAide} />
+      <NotifPopup />
     </>
   );
 }

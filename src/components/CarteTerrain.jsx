@@ -1,42 +1,55 @@
 import { Link } from 'react-router-dom';
-import { Users, ChevronRight } from 'lucide-react';
+import { Flame, MapPin, Star, Users } from 'lucide-react';
+import { noteLisible } from '../utils/avis';
 import { formatPrix } from '../utils/format';
-import { Monogramme } from './Marque';
+import { photosDe, tarifMin } from '../utils/recherche';
+import CarrouselPhotos from './CarrouselPhotos';
+import { IconeSport } from './Icones';
 
-/** Tarif le plus bas du terrain (base ou plage), pour "des X / h". */
-export function tarifMin(t) {
-  return Math.min(t.tarifHeure, ...(t.plages || []).map((p) => p.tarifHeure));
-}
+export { tarifMin };
 
-export default function CarteTerrain({ terrain }) {
+// Carte "annonce" : grande photo (galerie au doigt), puis en quelques lignes
+// ce qui decide le client : ou, combien de joueurs, a partir de combien.
+export default function CarteTerrain({ terrain, badge }) {
+  const t = terrain;
+  const min = tarifMin(t);
   return (
-    <Link to={`/terrains/${terrain.id}`}
-      className="group flex min-w-0 overflow-hidden rounded-lg border border-line bg-surface shadow-card transition-shadow hover:shadow-float sm:flex-col">
-      <div className="relative w-24 shrink-0 bg-primary/10 sm:aspect-[16/9] sm:w-full">
-        {terrain.photoUrl ? (
-          <img src={terrain.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full min-h-28 items-center justify-center">
-            <Monogramme className="h-12 w-12 rounded-xl text-lg opacity-80" />
-          </div>
-        )}
-        <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[11px] font-semibold text-ink shadow-card">
-          {terrain.sport}
+    <Link to={`/terrains/${t.id}`} className="group block min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4">
+      <CarrouselPhotos photos={photosDe(t)} alt={t.nom} className="rounded-xl">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-ink shadow-card backdrop-blur">
+          <IconeSport nom={t.sport} size={14} className="text-primary" /> {t.sport}
         </span>
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1 p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate font-semibold">{terrain.nom}</h3>
-          <ChevronRight size={18} className="mt-0.5 shrink-0 text-ink-light transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-        </div>
-        {terrain.surface && <p className="truncate text-xs text-ink-light">{terrain.surface}</p>}
-        <div className="mt-auto flex flex-col gap-0.5 pt-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-          <span className="inline-flex items-center gap-1 whitespace-nowrap text-ink-light">
-            <Users size={14} aria-hidden="true" /> {terrain.capacite} joueurs
+        {badge && (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[rgb(var(--marque-nuit))] px-2.5 py-1 text-xs font-semibold text-white shadow-card">
+            <Flame size={13} className="text-primary-light" aria-hidden="true" /> {badge}
           </span>
-          <span className="whitespace-nowrap font-semibold text-primary">dès {formatPrix(tarifMin(terrain))}/h</span>
-        </div>
+        )}
+      </CarrouselPhotos>
+      <div className="mt-3 flex items-start justify-between gap-3">
+        <h3 className="min-w-0 truncate text-[15px] font-bold">{t.nom}</h3>
+        {t.nombreAvis > 0 ? (
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm" aria-label={`Note ${noteLisible(t.noteMoyenne)} sur 5, ${t.nombreAvis} avis`}>
+            <Star size={14} className="fill-ink text-ink" aria-hidden="true" /> {noteLisible(t.noteMoyenne)}
+            <span className="text-ink-light">({t.nombreAvis})</span>
+          </span>
+        ) : (
+          <span className="shrink-0 text-sm text-ink-light">Nouveau</span>
+        )}
       </div>
+      {t.localite && (
+        <p className="mt-0.5 flex items-center gap-1 truncate text-sm text-ink-light">
+          <MapPin size={14} className="shrink-0" aria-hidden="true" /> <span className="truncate">{t.localite}</span>
+        </p>
+      )}
+      <p className="truncate text-sm text-ink-light">
+        <Users size={13} className="mr-1 inline align-[-2px]" aria-hidden="true" />
+        {[`${t.capacite} joueurs`, t.surface, `${t.dureeCreneauMinutes} min`].filter(Boolean).join(' · ')}
+      </p>
+      <p className="mt-1.5 text-[15px]">
+        {min < t.tarifHeure && <span className="text-ink-light">dès </span>}
+        <span className="font-bold">{formatPrix(min)}</span>
+        <span className="text-ink-light"> / heure</span>
+      </p>
     </Link>
   );
 }

@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Home, CalendarCheck } from 'lucide-react';
+import { Home, CalendarCheck, LayoutGrid } from 'lucide-react';
 
 const onglets = [
-  { to: '/', label: 'Réserver', Icon: Home },
+  { to: '/', label: 'Accueil', Icon: Home },
+  { to: '/terrains', label: 'Nos terrains', Icon: LayoutGrid },
   { to: '/mes-reservations', label: 'Mes réservations', Icon: CalendarCheck },
 ];
 

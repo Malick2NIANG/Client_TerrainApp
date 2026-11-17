@@ -1,9 +1,11 @@
 import { Link, NavLink } from 'react-router-dom';
 import { Monogramme, NomMarque } from './Marque';
 import { marque } from '../config/marque';
+import BoutonNotif from './BoutonNotif';
 
 const liens = [
-  { to: '/', label: 'Réserver un terrain' },
+  { to: '/', label: 'Accueil' },
+  { to: '/terrains', label: 'Nos terrains' },
   { to: '/mes-reservations', label: 'Mes réservations' },
 ];
 
@@ -14,7 +16,7 @@ export default function TopBar() {
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
         <Link to="/" aria-label={`${marque.nom} — accueil`} className="flex shrink-0 items-center gap-2.5">
           <Monogramme className="h-10 w-10 rounded-xl text-base" />
-          <NomMarque className="text-lg font-bold tracking-tight" />
+          <NomMarque className="titre-display text-[26px]" />
         </Link>
         <nav aria-label="Menu principal" className="flex flex-1 items-center justify-end gap-1">
           {liens.map(({ to, label }) => (
@@ -24,6 +26,7 @@ export default function TopBar() {
               {label}
             </NavLink>
           ))}
+          <BoutonNotif className="ml-2" />
         </nav>
       </div>
     </header>

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
-// Palette alignee sur Manager_RestoApp : noir #141414, police Poppins.
+// Identite propre a TerrainApp : titres en Barlow Condensed (esprit
+// maillot / tableau d'affichage), texte en DM Sans.
 // Couleur de MARQUE configurable (src/config/marque.js) : variables CSS
 // --marque* posees au demarrage ; bg-primary/40 et consorts restent valables.
 export default {
@@ -7,7 +8,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Poppins', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['"DM Sans"', 'Helvetica', 'Arial', 'sans-serif'],
+        display: ['"Barlow Condensed"', '"DM Sans"', 'Arial Narrow', 'sans-serif'],
       },
       colors: {
         primary: {
@@ -15,16 +17,16 @@ export default {
           dark: 'rgb(var(--marque-fonce) / <alpha-value>)',
           light: 'rgb(var(--marque-clair) / <alpha-value>)',
         },
+        nuit: 'rgb(var(--marque-nuit) / <alpha-value>)',
         ink: {
-          DEFAULT: '#141414',
-          light: '#6B6B6B',
+          DEFAULT: '#121212',
+          light: '#6A6A6A',
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          alt: '#F8F9FA',
+          alt: '#F4F4F1',
         },
-        cream: '#FAF7F2',
-        line: '#E6E6E6',
+        line: '#E8E8E3',
         success: '#1F6F57',
         danger: {
           DEFAULT: '#B3261E',
@@ -34,10 +36,12 @@ export default {
       borderRadius: {
         md: '12px',
         lg: '20px',
+        xl: '24px',
       },
       boxShadow: {
         card: '0 1px 3px rgba(0,0,0,0.08)',
-        float: '0 8px 24px rgba(0,0,0,0.14)',
+        float: '0 10px 30px rgba(0,0,0,0.14)',
+        recherche: '0 6px 24px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.08)',
       },
       maxWidth: {
         app: '640px',

@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock, FileDown, Navigation } from 'lucide-react';
 import { getReservation, relancerPaiement } from '../api/reservations';
 import BadgeStatut from '../components/BadgeStatut';
 import Ticket from '../components/Ticket';
+import NoterTerrain from '../components/NoterTerrain';
+import { peutNoter } from '../utils/avis';
 import { EtatErreur, Squelette } from '../components/EtatChargement';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { urlPaiementSure } from '../utils/paiement';
+import { lienItineraire } from '../utils/itineraire';
+import { telechargerRecu } from '../utils/recu';
+import { useToast } from '../context/ToastContext';
 
 export default function Reservation() {
   const { id } = useParams();
@@ -18,6 +23,19 @@ export default function Reservation() {
   const [res, setRes] = useState(null);
   const [erreur, setErreur] = useState(null);
   const [relance, setRelance] = useState(false);
+  const [pdf, setPdf] = useState(false);
+  const { showToast } = useToast();
+
+  const telecharger = async () => {
+    setPdf(true);
+    try {
+      await telechargerRecu(res);
+    } catch {
+      showToast('Le reçu n’a pas pu être créé. Réessayez.', { type: 'erreur' });
+    } finally {
+      setPdf(false);
+    }
+  };
 
   const charger = useCallback(() => {
     if (!jeton) return;
@@ -53,7 +71,7 @@ export default function Reservation() {
     return (
       <main className="mx-auto max-w-xl p-4">
         <EtatErreur titre="Réservation introuvable sur ce téléphone"
-          message="Le détail et le ticket ne s'ouvrent que sur le téléphone qui a réservé. Retrouvez vos réservations avec votre numéro."
+          message="Retrouvez-la dans « Mes réservations » avec votre numéro : un code vous sera envoyé par SMS."
           onReessayer={() => { window.location.href = '/mes-reservations'; }} />
       </main>
     );
@@ -101,9 +119,31 @@ export default function Reservation() {
             </section>
           )}
           {res.statut === 'EXPIREE' && (
-            <p className="rounded-md bg-surface-alt p-3 text-sm">Le paiement n’est pas arrivé à temps : le créneau a été libéré. <Link to="/" className="font-semibold text-primary underline">Réserver à nouveau</Link></p>
+            <p className="rounded-md bg-surface-alt p-3 text-sm">Le paiement n’est pas arrivé à temps : le créneau a été libéré. <Link to="/terrains" className="font-semibold text-primary underline">Réserver à nouveau</Link></p>
           )}
-          {res.codeTicket && <Ticket reservation={res} />}
+          {res.codeTicket && (
+            <>
+              <Ticket reservation={res} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button type="button" onClick={telecharger} disabled={pdf}
+                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold text-white disabled:opacity-60">
+                  <FileDown size={18} aria-hidden="true" /> {pdf ? 'Création du reçu…' : 'Télécharger le reçu (PDF)'}
+                </button>
+                {lienItineraire(res) && (
+                  <a href={lienItineraire(res)} target="_blank" rel="noopener noreferrer"
+                    className="flex h-12 items-center justify-center gap-2 rounded-xl border border-ink/80 text-[15px] font-semibold hover:bg-surface-alt">
+                    <Navigation size={18} aria-hidden="true" /> Itinéraire
+                  </a>
+                )}
+              </div>
+              <p className="text-center text-xs text-ink-light">
+                Le reçu contient votre QR code : gardez-le, il suffit à l’entrée même sans l’app.
+              </p>
+            </>
+          )}
+          {(peutNoter(res) || res.avisNote) && (
+            <NoterTerrain reservation={res} jeton={jeton} onNote={(note) => setRes((r) => ({ ...r, avisNote: note }))} />
+          )}
         </div>
       )}
     </main>
