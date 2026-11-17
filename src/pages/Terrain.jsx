@@ -73,8 +73,12 @@ export default function Terrain() {
   const [visionneuse, setVisionneuse] = useState(null);
   const blocCreneaux = useRef(null);
 
-  const chargerTerrain = useCallback(() => {
-    getTerrain(id).then(setTerrain).catch((e) => setErreur(e.message));
+  const chargerTerrain = useCallback((frais) => {
+    getTerrain(id, frais).then(setTerrain).catch((e) => {
+      // Depublie ou archive pendant la consultation : on l'annonce.
+      if (e.status === 404) setTerrain(null);
+      setErreur(e.message);
+    });
   }, [id]);
 
   useEffect(() => {
@@ -96,9 +100,9 @@ export default function Terrain() {
     setCreneaux(null);
     setChoisi(null);
     chargerCreneaux();
-    return ecouterChangements(['disponibilites', 'terrains'], () => {
+    return ecouterChangements(['disponibilites', 'terrains'], (sujet) => {
       chargerCreneaux();
-      chargerTerrain();
+      if (sujet === 'terrains') chargerTerrain(true);
     });
   }, [chargerCreneaux, chargerTerrain]);
 

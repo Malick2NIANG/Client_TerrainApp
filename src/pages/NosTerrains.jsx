@@ -45,9 +45,11 @@ export default function NosTerrains() {
     return n;
   }, { replace: true });
 
-  const charger = useCallback(() => {
+  // sujet : appel venu du temps reel -> donnees fraiches (hors cache).
+  const charger = useCallback((sujet) => {
+    const frais = Boolean(sujet);
     setErreur(null);
-    Promise.all([getSports(), getTerrains()])
+    Promise.all([getSports(frais), getTerrains(frais)])
       .then(([s, t]) => {
         setSports(s);
         setTerrains(t);

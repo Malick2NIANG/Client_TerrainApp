@@ -27,16 +27,18 @@ export default function Accueil() {
   const [erreur, setErreur] = useState(null);
   const [q, setQ] = useState('');
 
-  const charger = useCallback(() => {
+  // sujet : appel venu du temps reel -> donnees fraiches (hors cache).
+  const charger = useCallback((sujet) => {
+    const frais = Boolean(sujet);
     setErreur(null);
-    Promise.all([getSports(), getTerrains(), getTendances(4)])
+    Promise.all([getSports(frais), getTerrains(frais), getTendances(4, frais)])
       .then(([s, t, top]) => {
         setSports(s);
         setTerrains(t);
         setTendances(top);
       })
       .catch((e) => setErreur(e.message));
-    getHoraires().then(setHoraires).catch(() => setHoraires(null));
+    getHoraires(frais).then(setHoraires).catch(() => setHoraires(null));
   }, []);
 
   useEffect(() => {

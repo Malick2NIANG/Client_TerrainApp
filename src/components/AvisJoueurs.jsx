@@ -14,7 +14,7 @@ export default function AvisJoueurs({ terrain }) {
   const [nb, setNb] = useState(PAR_PAGE);
 
   useEffect(() => {
-    getAvisTerrain(terrain.id).then(setAvis).catch(() => setAvis([]));
+    getAvisTerrain(terrain.id, true).then(setAvis).catch(() => setAvis([]));
   }, [terrain.id, terrain.nombreAvis]);
 
   if (!terrain.nombreAvis || !avis?.length) return null;
