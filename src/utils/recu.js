@@ -141,7 +141,27 @@ export async function genererRecu(r) {
   return doc;
 }
 
-/** Telecharge le recu PDF. */
+/** App installee sur l'ecran d'accueil (sans barre d'adresse ni bouton retour). */
+const appInstallee = () => window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+/**
+ * Telecharge le recu PDF sans quitter l'app. App installee sur telephone :
+ * feuille de partage du systeme (Enregistrer, Imprimer, WhatsApp...) qui se
+ * referme sur l'app ; sinon telechargement classique (la page ne change pas).
+ */
 export async function telechargerRecu(r) {
-  (await genererRecu(r)).save(`recu-${r.reference}.pdf`);
+  const doc = await genererRecu(r);
+  const nom = `recu-${r.reference}.pdf`;
+  if (appInstallee()) {
+    const fichier = new File([doc.output('blob')], nom, { type: 'application/pdf' });
+    if (navigator.canShare?.({ files: [fichier] })) {
+      try {
+        await navigator.share({ files: [fichier], title: `Reçu ${r.reference}` });
+        return;
+      } catch (e) {
+        if (e?.name === 'AbortError') return; // partage ferme : on reste dans l'app
+      }
+    }
+  }
+  doc.save(nom);
 }
