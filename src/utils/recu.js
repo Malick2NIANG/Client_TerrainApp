@@ -1,8 +1,7 @@
 // Recu PDF d'une reservation payee : recu de paiement + details de la
 // reservation + QR code du ticket (a presenter a l'entree, meme sans
 // l'app). Genere dans le navigateur : bibliotheques chargees a la demande.
-import { marque, nomEnDeuxTons } from '../config/marque';
-import { dateLongue, plage } from './dates';
+import { marque } from '../config/marque';
 import { formatPrix } from './format';
 import { formaterTelephone } from './telephone';
 import { lienItineraire } from './itineraire';
@@ -30,125 +29,119 @@ export function telephoneMasque(tel) {
 
 const DATE_HEURE = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Dakar', dateStyle: 'long', timeStyle: 'short' });
 
-/** Lignes du recu (testees a part du dessin). */
+const HEURE = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Dakar', hour: '2-digit', minute: '2-digit' });
+const DATE_COMPLETE = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Dakar', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const EMIS = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Africa/Dakar', dateStyle: 'short', timeStyle: 'short' });
+
+/**
+ * Lignes du recu (testees a part du dessin) : memes rubriques que le recu
+ * de caisse du comptoir (Manager), plus le lieu.
+ */
 export function lignesRecu(r) {
   return [
     ['Référence', r.reference],
-    ['Terrain', `${r.terrain} · ${r.sport}`],
-    r.localite && ['Lieu', r.localite],
-    ['Date', dateLongue(r.debut).replace(/^./, (c) => c.toUpperCase())],
-    ['Créneau', plage(r.debut, r.fin)],
     r.clientNom && ['Client', r.clientNom],
-    r.clientTelephone && ['Téléphone', telephoneMasque(r.clientTelephone)],
+    ['Terrain', r.sport ? `${r.terrain} (${r.sport})` : r.terrain],
+    r.localite && ['Lieu', r.localite],
+    ['Date', DATE_COMPLETE.format(new Date(r.debut))],
+    ['Créneau', `${HEURE.format(new Date(r.debut))} – ${HEURE.format(new Date(r.fin))}`],
     ['Paiement', MOYENS[r.moyenPaiement] || r.moyenPaiement],
+    ['Montant payé', formatPrix(r.montant)],
+    r.especesRecues != null && ['Espèces reçues', formatPrix(r.especesRecues)],
+    r.monnaieRendue != null && ['Monnaie rendue', formatPrix(r.monnaieRendue)],
     r.payeeLe && ['Payé le', DATE_HEURE.format(new Date(r.payeeLe))],
   ].filter(Boolean);
 }
 
-function rgb(hexOuTableau) {
-  return Array.isArray(hexOuTableau) ? hexOuTableau : [31, 122, 77];
-}
+const LARGEUR = 80; // ticket de caisse 80 mm, comme au comptoir
+const MARGE = 5;
 
-/** Telecharge le recu PDF de la reservation (statut CONFIRMEE ou HONOREE). */
-export async function telechargerRecu(r) {
-  const [{ jsPDF }, QRCode] = await Promise.all([import('jspdf'), import('qrcode')]);
-  const doc = new jsPDF({ unit: 'mm', format: 'a5' });
-  const L = doc.internal.pageSize.getWidth();
-  const H = doc.internal.pageSize.getHeight();
-  const couleur = rgb(marque.couleurRgb);
-  const nuit = couleur.map((c) => Math.round(c * 0.25));
+/** Dessine le ticket et renvoie la hauteur utilisee (meme dessin pour mesurer puis produire). */
+function dessiner(doc, r, qr, itineraire) {
   const T = pdfTexte;
+  const L = LARGEUR;
+  const droite = L - MARGE;
+  let y = 9;
+  const tirets = () => {
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(9);
+    doc.text('-'.repeat(38), L / 2, y, { align: 'center' });
+  };
 
-  // En-tete aux couleurs du complexe.
-  doc.setFillColor(...nuit);
-  doc.rect(0, 0, L, 30, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bolditalic');
-  doc.setFontSize(18);
-  const { debut, accent } = nomEnDeuxTons();
-  doc.text(T(debut.toUpperCase()), 10, 14);
-  if (accent) {
-    doc.setTextColor(...rgb(marque.couleurClaireRgb));
-    doc.text(T(accent.toUpperCase()), 10 + doc.getTextWidth(T(debut.toUpperCase())), 14);
-  }
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(T('Reçu de paiement et ticket d’entrée'), 10, 22);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text(T('PAYÉ'), L - 10, 14, { align: 'right' });
-  doc.setFont('helvetica', 'normal');
-  doc.text(T(r.reference), L - 10, 22, { align: 'right' });
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(14);
+  doc.text(T(marque.etablissement || marque.nom), L / 2, y, { align: 'center' });
+  y += 5;
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(8.5);
+  doc.text(T(`Reçu émis le ${EMIS.format(new Date())}`), L / 2, y, { align: 'center' });
+  y += 5;
+  tirets();
+  y += 4;
+  doc.setFont('courier', 'bold');
+  doc.setFontSize(10);
+  doc.text(T('REÇU DE PAIEMENT'), L / 2, y, { align: 'center' });
+  y += 3;
+  tirets();
+  y += 6;
 
-  // Montant.
-  doc.setTextColor(20, 20, 20);
-  doc.setFontSize(9);
-  doc.text(T('Montant payé'), 10, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(...couleur);
-  doc.text(T(formatPrix(r.montant)), 10, 51);
-
-  // Details.
-  let y = 62;
   doc.setFontSize(9);
   for (const [libelle, valeur] of lignesRecu(r)) {
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(110, 110, 110);
-    doc.text(T(libelle), 10, y);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(20, 20, 20);
-    const lignes = doc.splitTextToSize(T(valeur), 62);
-    doc.text(lignes, 34, y);
-    y += 6 * lignes.length;
+    doc.setFont('courier', 'normal');
+    const gauche = doc.splitTextToSize(T(libelle), 26);
+    doc.text(gauche, MARGE, y);
+    doc.setFont('courier', 'bold');
+    const valeurs = doc.splitTextToSize(T(valeur), 42);
+    valeurs.forEach((ligne, i) => doc.text(ligne, droite, y + i * 4, { align: 'right' }));
+    y += 4 * Math.max(gauche.length, valeurs.length) + 1.5;
   }
 
-  // QR code du ticket.
-  const qr = await QRCode.toDataURL(r.codeTicket, { errorCorrectionLevel: 'M', margin: 1, width: 480 });
-  const tailleQr = 46;
-  const xQr = L - 10 - tailleQr;
-  doc.setDrawColor(230, 230, 230);
-  doc.roundedRect(xQr - 2, 38, tailleQr + 4, tailleQr + 14, 2, 2, 'S');
-  doc.addImage(qr, 'PNG', xQr, 40, tailleQr, tailleQr);
+  if (qr) {
+    y += 2;
+    doc.addImage(qr, 'PNG', (L - 38) / 2, y, 38, 38);
+    y += 42;
+  }
   doc.setFont('courier', 'bold');
   doc.setFontSize(11);
-  doc.setTextColor(20, 20, 20);
-  doc.text(T(r.reference), xQr + tailleQr / 2, 40 + tailleQr + 7, { align: 'center' });
-
-  // Consignes et itineraire.
-  y = Math.max(y + 4, 108);
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineDashPattern([1.5, 1.5], 0);
-  doc.line(10, y, L - 10, y);
-  doc.setLineDashPattern([], 0);
-  y += 8;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text(T('À l’entrée'), 10, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(70, 70, 70);
-  const consignes = doc.splitTextToSize(T('Présentez ce QR code (ou la référence) au contrôle, au plus tôt 30 minutes avant le début du créneau. Le ticket ne sert qu’une fois.'), L - 20);
-  doc.text(consignes, 10, y + 6);
-  y += 6 + consignes.length * 4.5 + 4;
-  const itineraire = lienItineraire(r);
+  doc.text(T(r.reference), L / 2, y, { align: 'center' });
+  y += 5;
+  tirets();
+  y += 5;
+  doc.setFont('courier', 'normal');
+  doc.setFontSize(8.5);
+  const pied = doc.splitTextToSize(T('Présentez ce reçu (QR code) à l’entrée, au plus tôt 30 minutes avant le créneau.'), L - 2 * MARGE);
+  pied.forEach((ligne) => { doc.text(ligne, L / 2, y, { align: 'center' }); y += 4; });
+  doc.text(T('Merci et bon match !'), L / 2, y, { align: 'center' });
+  y += 5;
   if (itineraire) {
-    doc.setTextColor(...couleur);
-    doc.setFont('helvetica', 'bold');
-    doc.textWithLink(T('Itinéraire jusqu’au terrain (Google Maps)'), 10, y, { url: itineraire });
-    y += 6;
+    doc.setTextColor(0, 0, 200);
+    doc.textWithLink(T('Itinéraire (Google Maps)'), L / 2 - doc.getTextWidth(T('Itinéraire (Google Maps)')) / 2, y, { url: itineraire });
+    doc.setTextColor(0, 0, 0);
+    y += 5;
   }
   if (marque.adresse) {
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(70, 70, 70);
-    doc.text(T(marque.adresse), 10, y);
+    doc.text(T(marque.adresse), L / 2, y, { align: 'center' });
+    y += 5;
   }
+  return y + 3;
+}
 
-  // Pied de page.
-  doc.setFontSize(7.5);
-  doc.setTextColor(140, 140, 140);
-  doc.text(T(`${marque.nom} · Document généré le ${DATE_HEURE.format(new Date())} · conservez-le jusqu’au match.`), L / 2, H - 8, { align: 'center' });
+/** Recu PDF (ticket 80 mm) de la reservation (statut CONFIRMEE ou HONOREE). */
+export async function genererRecu(r) {
+  const [{ jsPDF }, QRCode] = await Promise.all([import('jspdf'), import('qrcode')]);
+  const qr = r.codeTicket
+    ? await QRCode.toDataURL(r.codeTicket, { errorCorrectionLevel: 'M', margin: 1, width: 480 })
+    : null;
+  const itineraire = lienItineraire(r);
+  // 1er passage pour mesurer la hauteur, puis le ticket a sa taille exacte.
+  const hauteur = dessiner(new jsPDF({ unit: 'mm', format: [LARGEUR, 400] }), r, qr, itineraire);
+  const doc = new jsPDF({ unit: 'mm', format: [LARGEUR, Math.ceil(hauteur)] });
+  dessiner(doc, r, qr, itineraire);
+  return doc;
+}
 
-  doc.save(`recu-${r.reference}.pdf`);
+/** Telecharge le recu PDF. */
+export async function telechargerRecu(r) {
+  (await genererRecu(r)).save(`recu-${r.reference}.pdf`);
 }
