@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>TerrainApp</title>
     <meta name="description" content="TerrainApp : réservez votre terrain de sport en ligne, sans compte." />
-    <meta name="theme-color" content="#1F7A4D" />
+    <meta name="theme-color" content="#081F13" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,13 +16,45 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+    <!-- Ecran de demarrage : visible des le premier octet, avant le JS.
+         Rempli (logo, nom, slogan) et retire par src/splash.js. -->
+    <style>
+      #splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: radial-gradient(120% 80% at 50% 30%, var(--splash-halo, #1F7A4D) 0%, var(--splash-fond, #081F13) 62%);
+        color: #fff; transition: opacity .9s ease-in-out, visibility .9s; overflow: hidden; }
+      #splash.splash-sortie { opacity: 0; visibility: hidden; }
+      #splash.splash-rapide { transition-duration: .25s; }
+      #splash .splash-lignes { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .14; }
+    </style>
   </head>
   <body>
+    <div id="splash" aria-hidden="true">
+      <svg class="splash-lignes" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#fff" stroke-width="2">
+        <rect x="30" y="40" width="340" height="720" rx="4" />
+        <line x1="30" y1="400" x2="370" y2="400" />
+        <circle cx="200" cy="400" r="70" />
+        <circle cx="200" cy="400" r="4" fill="#fff" />
+        <rect x="110" y="40" width="180" height="110" />
+        <rect x="110" y="650" width="180" height="110" />
+      </svg>
+    </div>
     <div id="root"></div>
     <!-- Configuration de l'environnement (generee au demarrage en Docker,
          vide en developpement) : voir src/config/runtime.js. -->
     <script src="/config.js"></script>
+    <script>
+      // Couleur du complexe sur l'ecran de demarrage, avant le chargement de l'app.
+      (function () {
+        var c = (window.__TERRAINAPP_CONFIG__ || {}).MARQUE_COULEUR;
+        var h = String(c || '').replace('#', '');
+        if (!/^[0-9a-f]{6}$/i.test(h)) return;
+        var rgb = [0, 2, 4].map(function (i) { return parseInt(h.slice(i, i + 2), 16); });
+        var s = document.getElementById('splash').style;
+        s.setProperty('--splash-halo', 'rgb(' + rgb.join(',') + ')');
+        s.setProperty('--splash-fond', 'rgb(' + rgb.map(function (v) { return Math.round(v * 0.25); }).join(',') + ')');
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

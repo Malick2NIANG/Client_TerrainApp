@@ -3,17 +3,26 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { reserver } from '../api/reservations';
 import MoyensPaiement from '../components/MoyensPaiement';
+import ChampTelephone from '../components/ChampTelephone';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { nouvelleCle, urlPaiementSure } from '../utils/paiement';
-import { normaliserTelephone } from '../utils/telephone';
+import { telephoneDepuisLocal } from '../utils/telephone';
 
 const CLE_CONTACT = 'terrainapp_contact_v1';
 
+// Seuls le prenom et le nom sont retenus sur l'appareil pour pre-remplir la
+// prochaine reservation ; le numero de telephone n'est jamais stocke (il est
+// retire des anciennes sauvegardes qui le contenaient).
 function contactMemorise() {
   try {
-    return JSON.parse(localStorage.getItem(CLE_CONTACT) || '{}');
+    const memo = JSON.parse(localStorage.getItem(CLE_CONTACT) || '{}');
+    if (memo && 'telephone' in memo) {
+      delete memo.telephone;
+      localStorage.setItem(CLE_CONTACT, JSON.stringify(memo));
+    }
+    return memo || {};
   } catch {
     return {};
   }
@@ -24,8 +33,10 @@ export default function Reserver() {
   const navigate = useNavigate();
   const { ajouter } = useMesReservations();
   const memo = contactMemorise();
-  const [nom, setNom] = useState(memo.nom || '');
-  const [telephone, setTelephone] = useState(memo.telephone || '');
+  // Ancien format retenu ({ nom: "Awa Diop" }) : decoupe prenom / nom.
+  const [prenom, setPrenom] = useState(memo.prenom ?? (memo.nom || '').split(' ')[0] ?? '');
+  const [nom, setNom] = useState(memo.prenom !== undefined ? memo.nom || '' : (memo.nom || '').split(' ').slice(1).join(' '));
+  const [telephone, setTelephone] = useState('');
   const [moyen, setMoyen] = useState('wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -34,24 +45,26 @@ export default function Reserver() {
   // coupure reseau ne reserve (et ne paie) jamais deux fois.
   const cle = useRef(nouvelleCle());
 
+  const telNormalise = telephoneDepuisLocal(telephone);
+
   if (!state?.terrain || !state?.creneau) return <Navigate to="/" replace />;
   const { terrain, creneau } = state;
-  const telNormalise = normaliserTelephone(telephone);
 
   const valider = async (e) => {
     e.preventDefault();
     const fautes = {};
+    if (prenom.trim().length < 2) fautes.prenom = 'Indiquez votre prénom.';
     if (nom.trim().length < 2) fautes.nom = 'Indiquez votre nom.';
-    if (!telNormalise) fautes.telephone = 'Numéro sénégalais à 9 chiffres (ex. 77 123 45 67).';
+    if (!telNormalise) fautes.telephone = 'Numéro à 9 chiffres (ex. 77 123 45 67).';
     setChamps(fautes);
     if (Object.keys(fautes).length) return;
     setEnvoi(true);
     setErreur(null);
     try {
-      const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: nom.trim(),
+      const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: `${prenom.trim()} ${nom.trim()}`,
         clientTelephone: telNormalise, moyenPaiement: moyen }, cle.current);
       try {
-        localStorage.setItem(CLE_CONTACT, JSON.stringify({ nom: nom.trim(), telephone }));
+        localStorage.setItem(CLE_CONTACT, JSON.stringify({ prenom: prenom.trim(), nom: nom.trim() }));
       } catch {
         // facultatif
       }
@@ -97,29 +110,31 @@ export default function Reserver() {
 
       <form id="form-reservation" onSubmit={valider} noValidate className="mt-6 space-y-5">
         <fieldset className="space-y-3">
-          <legend className="mb-1 font-bold">Vos coordonnées</legend>
-          <label className="block text-sm">
-            <span className="font-semibold">Nom</span>
-            <input value={nom} onChange={(e) => setNom(e.target.value)} autoComplete="name" maxLength={80}
-              aria-invalid={Boolean(champs.nom)}
-              className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
-            {champs.nom && <span className="mt-1 block text-xs text-danger">{champs.nom}</span>}
-          </label>
-          <label className="block text-sm">
-            <span className="font-semibold">Téléphone</span>
-            <input value={telephone} onChange={(e) => setTelephone(e.target.value)} inputMode="tel" autoComplete="tel"
-              placeholder="77 123 45 67" aria-invalid={Boolean(champs.telephone)}
-              className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
-            {champs.telephone ? (
-              <span className="mt-1 block text-xs text-danger">{champs.telephone}</span>
-            ) : (
-              <span className="mt-1 block text-xs text-ink-light">Pour retrouver vos réservations, sans créer de compte.</span>
-            )}
-          </label>
+          <legend className="mb-1 flex items-center gap-2 font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs text-white">1</span> Vos coordonnées
+          </legend>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="font-semibold">Prénom</span>
+              <input value={prenom} onChange={(e) => setPrenom(e.target.value)} autoComplete="given-name" maxLength={40}
+                aria-invalid={Boolean(champs.prenom)} className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
+              {champs.prenom && <span className="mt-1 block text-xs text-danger">{champs.prenom}</span>}
+            </label>
+            <label className="block text-sm">
+              <span className="font-semibold">Nom</span>
+              <input value={nom} onChange={(e) => setNom(e.target.value)} autoComplete="family-name" maxLength={39}
+                aria-invalid={Boolean(champs.nom)} className="mt-1 h-12 w-full rounded-md border border-line bg-surface px-3 outline-none focus:border-primary" />
+              {champs.nom && <span className="mt-1 block text-xs text-danger">{champs.nom}</span>}
+            </label>
+          </div>
+          <ChampTelephone id="telephone" valeur={telephone} onChange={setTelephone} erreur={champs.telephone}
+            aide="Pour vous joindre, et pour retrouver vos réservations sur un autre téléphone (code par SMS)." />
         </fieldset>
 
         <fieldset>
-          <legend className="mb-3 font-bold">Paiement</legend>
+          <legend className="mb-3 flex items-center gap-2 font-bold">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-xs text-white">2</span> Paiement
+          </legend>
           <MoyensPaiement valeur={moyen} onChange={setMoyen} telephone={telNormalise} />
         </fieldset>
 

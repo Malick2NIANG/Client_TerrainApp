@@ -103,6 +103,7 @@ export function appliquerMarque(m = marque, doc = document) {
   racine.setProperty('--marque-sombre', triplet(nuance(m.couleurRgb, -0.45)));
   racine.setProperty('--marque-nuit', triplet(nuance(m.couleurRgb, -0.75)));
   doc.title = m.nom;
+  // Barre du navigateur : la teinte nuit de la marque (en-tete sombre de l'app).
   const theme = doc.querySelector('meta[name="theme-color"]');
-  if (theme) theme.setAttribute('content', m.couleur);
+  if (theme) theme.setAttribute('content', `rgb(${nuance(m.couleurRgb, -0.75).join(',')})`);
 }

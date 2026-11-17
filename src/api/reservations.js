@@ -9,9 +9,16 @@ export const reserver = (saisie, cle) =>
 export const getReservation = (id, jeton) =>
   client.get(`/reservations/${id}`, { headers: { [JETON]: jeton } }).then((r) => r.data);
 
-/** Historique d'un numero (vue reduite, sans ticket). */
-export const getHistorique = (telephone) =>
-  client.get('/reservations', { params: { telephone } }).then((r) => r.data);
+/** Autre telephone : envoie un code a 6 chiffres par SMS au numero. */
+export const demanderCodeSms = (telephone) =>
+  client.post('/reservations/retrouver/code', { telephone }).then(() => true);
+
+/**
+ * Numero + code recu par SMS. Renvoie [{ reservation, jetonAcces }] : le
+ * jeton d'acces ouvre le detail et le ticket (comme le jeton de suivi).
+ */
+export const retrouverReservations = (telephone, code) =>
+  client.post('/reservations/retrouver', { telephone, code }).then((r) => r.data);
 
 export const relancerPaiement = (reservationId, jeton) =>
   client.post('/paiements/init', { reservationId }, { headers: { [JETON]: jeton } }).then((r) => r.data);
