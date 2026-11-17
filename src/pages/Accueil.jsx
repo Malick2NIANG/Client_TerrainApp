@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { positionCadrage } from '../utils/cadrage';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Flame } from 'lucide-react';
 import { getHoraires, getSports, getTendances, getTerrains } from '../api/terrains';
@@ -55,7 +56,7 @@ export default function Accueil() {
     <main className="pb-6">
       <section className="relative isolate overflow-hidden bg-[rgb(var(--marque-nuit))] text-white md:mx-auto md:mt-4 md:max-w-6xl md:rounded-xl">
         {couverture && (
-          <img src={couverture} alt="" aria-hidden="true" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
+          <img src={couverture} alt="" aria-hidden="true" style={{ objectPosition: positionCadrage(couverture) }} className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
         )}
         <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[rgb(var(--marque-nuit))] via-[rgb(var(--marque-nuit)/0.72)] to-[rgb(var(--marque-nuit)/0.35)]" />
         <MotifTerrain className="absolute -right-24 -top-10 -z-10 h-[130%] w-[520px] text-white/10 md:right-0" />

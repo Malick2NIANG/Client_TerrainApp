@@ -1,11 +1,13 @@
 import { Play } from 'lucide-react';
 import { estVideo } from '../utils/recherche';
+import { positionCadrage } from '../utils/cadrage';
 
 // Apercu d'un media de galerie : photo, ou premiere image d'une video avec
 // un bouton lecture (la video se lit en plein ecran, dans la visionneuse).
 export default function MediaVignette({ url, alt = '', className = '', eager = false }) {
   if (!estVideo(url)) {
-    return <img src={url} alt={alt} loading={eager ? 'eager' : 'lazy'} draggable="false" className={className} />;
+    return <img src={url} alt={alt} loading={eager ? 'eager' : 'lazy'} draggable="false" className={className}
+      style={{ objectPosition: positionCadrage(url) }} />;
   }
   return (
     <span className={`relative block ${className}`}>
