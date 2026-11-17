@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-// Saisie d'un code a chiffres (PIN a 4, code SMS a 6) : clavier numerique,
+// Saisie d'un code a chiffres (code SMS a 6) : clavier numerique,
 // chiffres masques par defaut, bouton pour les afficher.
-export default function ChampPin({ valeur, onChange, longueur = 4, label, aide, erreur, masque = true, id, autoFocus }) {
+export default function ChampCode({ valeur, onChange, longueur = 4, label, aide, erreur, masque = true, id, autoFocus }) {
   const [visible, setVisible] = useState(!masque);
   return (
     <label className="block text-sm" htmlFor={id}>

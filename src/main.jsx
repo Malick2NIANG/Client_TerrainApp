@@ -8,6 +8,8 @@ import { masquerSplash, remplirSplash } from './splash';
 // Couleur, titre de l'onglet : la marque du complexe, avant le 1er rendu.
 appliquerMarque();
 remplirSplash();
+// Ancien code PIN memorise sur ce telephone : n'existe plus.
+try { localStorage.removeItem('terrainapp_pins_v1'); } catch { /* stockage indisponible */ }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

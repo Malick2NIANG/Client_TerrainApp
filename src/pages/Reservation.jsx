@@ -71,7 +71,7 @@ export default function Reservation() {
     return (
       <main className="mx-auto max-w-xl p-4">
         <EtatErreur titre="Réservation introuvable sur ce téléphone"
-          message="Retrouvez-la dans « Mes réservations » avec votre numéro et votre code PIN."
+          message="Retrouvez-la dans « Mes réservations » avec votre numéro : un code vous sera envoyé par SMS."
           onReessayer={() => { window.location.href = '/mes-reservations'; }} />
       </main>
     );

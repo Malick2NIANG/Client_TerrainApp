@@ -8,6 +8,10 @@ const JOUR_COURT = fmt({ weekday: 'short' });
 const NUM_JOUR = fmt({ day: 'numeric' });
 const MOIS_COURT = fmt({ month: 'short' });
 const DATE_LONGUE = fmt({ weekday: 'long', day: 'numeric', month: 'long' });
+const MOIS_ANNEE = fmt({ month: 'long', year: 'numeric' });
+
+/** On reserve jusqu'a 60 jours a l'avance (meme regle que le serveur). */
+export const JOURS_RESERVABLES = 60;
 
 /** "YYYY-MM-DD" du jour a Dakar. */
 export function jourISO(date = new Date()) {
@@ -29,6 +33,32 @@ export function prochainsJours(n, depuis = new Date()) {
 }
 
 const sansPoint = (s) => s.replace('.', '');
+
+/** "2026-11-20" + n jours. */
+export const ajouterJours = (iso, n) => jourISO(new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86400000));
+
+/** Pastille d'un jour quelconque ("ven.", "20", "nov."). */
+export function jourCourtDe(iso) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  return { iso, jourCourt: sansPoint(JOUR_COURT.format(d)), numero: NUM_JOUR.format(d), mois: sansPoint(MOIS_COURT.format(d)) };
+}
+
+/** "novembre 2026" */
+export const libelleMois = (annee, mois) => MOIS_ANNEE.format(new Date(Date.UTC(annee, mois, 15)));
+
+/**
+ * Semaines du mois (lundi -> dimanche) : chaque case est le jour ISO, ou
+ * null avant le 1er et apres le dernier jour. mois : 0 = janvier.
+ */
+export function grilleMois(annee, mois) {
+  const premier = Date.UTC(annee, mois, 1);
+  const decalage = (new Date(premier).getUTCDay() + 6) % 7;
+  const nbJours = new Date(Date.UTC(annee, mois + 1, 0)).getUTCDate();
+  const cases = [...Array(decalage).fill(null),
+    ...Array.from({ length: nbJours }, (_, i) => jourISO(new Date(premier + i * 86400000)))];
+  while (cases.length % 7) cases.push(null);
+  return Array.from({ length: cases.length / 7 }, (_, i) => cases.slice(i * 7, i * 7 + 7));
+}
 
 export const heure = (instant) => HEURE.format(new Date(instant));
 
