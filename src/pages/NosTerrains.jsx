@@ -29,6 +29,8 @@ export function SqueletteAnnonces({ nb = 6 }) {
 // Tous les terrains du complexe : recherche (nom, quartier, sport,
 // equipement) et filtre par sport, gardes dans l'adresse (retour depuis une
 // fiche terrain = meme liste ; lien partageable).
+const PAR_PAGE = 12;
+
 export default function NosTerrains() {
   const [sports, setSports] = useState([]);
   const [terrains, setTerrains] = useState(null);
@@ -72,6 +74,11 @@ export default function NosTerrains() {
 
   const visibles = useMemo(() => filtrerTerrains(terrains, q, sport), [terrains, q, sport]);
   const filtre = q.trim() !== '' || sport !== null;
+  // 12 cartes, puis "Afficher plus" : la liste repart du debut a chaque filtre.
+  const cleFiltre = `${q.trim()}|${sport}`;
+  const [affichage, setAffichage] = useState({ cle: cleFiltre, nb: PAR_PAGE });
+  const nb = affichage.cle === cleFiltre ? affichage.nb : PAR_PAGE;
+  const reste = visibles.length - nb;
 
   return (
     <main className="pb-6">
@@ -128,8 +135,17 @@ export default function NosTerrains() {
             </div>
           ) : (
             <ul className="grid gap-x-6 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
-              {visibles.map((t) => <li key={t.id} className="min-w-0"><CarteTerrain terrain={t} /></li>)}
+              {visibles.slice(0, nb).map((t) => <li key={t.id} className="min-w-0"><CarteTerrain terrain={t} /></li>)}
             </ul>
+          )}
+          {terrains !== null && !erreur && reste > 0 && (
+            <div className="mt-10 flex flex-col items-center gap-2">
+              <p className="text-xs text-ink-light">{nb} sur {visibles.length} terrains</p>
+              <button type="button" onClick={() => setAffichage({ cle: cleFiltre, nb: nb + PAR_PAGE })}
+                className="h-11 rounded-xl border border-ink/80 px-6 text-sm font-semibold hover:bg-surface-alt">
+                Afficher {Math.min(PAR_PAGE, reste)} terrains de plus
+              </button>
+            </div>
           )}
         </section>
       </div>
