@@ -7,6 +7,8 @@ la configuration (`VITE_MARQUE_*` en dev, `MARQUE_*` en Docker), jamais du code.
 
 ## Lancer en local
 
+Il faut aussi le backend démarré. Pour lancer les trois applications ensemble et faire le vrai parcours, suivre le guide [`LANCER-EN-LOCAL.md`](https://github.com/Malick2NIANG/Backend_TerrainApp/blob/main/LANCER-EN-LOCAL.md) du dépôt Backend.
+
 ```bash
 cp .env.example .env     # VITE_API_BASE_URL=/api/v1
 npm install
