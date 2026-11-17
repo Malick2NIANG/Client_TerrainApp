@@ -8,13 +8,21 @@ import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
 import { formatPrix } from '../utils/format';
 import { nouvelleCle, urlPaiementSure } from '../utils/paiement';
-import { formaterSaisieLocale, formaterTelephone, telephoneDepuisLocal } from '../utils/telephone';
+import { telephoneDepuisLocal } from '../utils/telephone';
 
 const CLE_CONTACT = 'terrainapp_contact_v1';
 
+// Seuls le prenom et le nom sont retenus sur l'appareil pour pre-remplir la
+// prochaine reservation ; le numero de telephone n'est jamais stocke (il est
+// retire des anciennes sauvegardes qui le contenaient).
 function contactMemorise() {
   try {
-    return JSON.parse(localStorage.getItem(CLE_CONTACT) || '{}');
+    const memo = JSON.parse(localStorage.getItem(CLE_CONTACT) || '{}');
+    if (memo && 'telephone' in memo) {
+      delete memo.telephone;
+      localStorage.setItem(CLE_CONTACT, JSON.stringify(memo));
+    }
+    return memo || {};
   } catch {
     return {};
   }
@@ -28,7 +36,7 @@ export default function Reserver() {
   // Ancien format retenu ({ nom: "Awa Diop" }) : decoupe prenom / nom.
   const [prenom, setPrenom] = useState(memo.prenom ?? (memo.nom || '').split(' ')[0] ?? '');
   const [nom, setNom] = useState(memo.prenom !== undefined ? memo.nom || '' : (memo.nom || '').split(' ').slice(1).join(' '));
-  const [telephone, setTelephone] = useState(() => formaterSaisieLocale(formaterTelephone(memo.telephone || '') || memo.telephone || ''));
+  const [telephone, setTelephone] = useState('');
   const [moyen, setMoyen] = useState('wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
@@ -56,7 +64,7 @@ export default function Reserver() {
       const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: `${prenom.trim()} ${nom.trim()}`,
         clientTelephone: telNormalise, moyenPaiement: moyen }, cle.current);
       try {
-        localStorage.setItem(CLE_CONTACT, JSON.stringify({ prenom: prenom.trim(), nom: nom.trim(), telephone: telNormalise }));
+        localStorage.setItem(CLE_CONTACT, JSON.stringify({ prenom: prenom.trim(), nom: nom.trim() }));
       } catch {
         // facultatif
       }
