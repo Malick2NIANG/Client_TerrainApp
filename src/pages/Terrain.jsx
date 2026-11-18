@@ -1,3 +1,4 @@
+import { dureesDe, libelleDuree, optionsDuree, resumeDurees } from '../utils/durees';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -69,9 +70,12 @@ export default function Terrain() {
   const [jour, setJour] = useState(jourISO());
   const [creneaux, setCreneaux] = useState(null);
   const [choisi, setChoisi] = useState(null);
+  const [duree, setDuree] = useState(null);
+  const [dispo, setDispo] = useState(null);
   const [galerie, setGalerie] = useState(null);
   const [visionneuse, setVisionneuse] = useState(null);
   const blocCreneaux = useRef(null);
+  const blocDuree = useRef(null);
 
   const chargerTerrain = useCallback((frais) => {
     getTerrain(id, frais).then(setTerrain).catch((e) => {
@@ -89,6 +93,7 @@ export default function Terrain() {
     getDisponibilites(jour, id)
       .then((d) => {
         const liste = d[0]?.creneaux || [];
+        setDispo(d[0] || null);
         setCreneaux(liste);
         // Le creneau choisi vient d'etre pris par quelqu'un d'autre : on le retire.
         setChoisi((c) => (c && liste.some((x) => x.debut === c.debut && x.etat === 'LIBRE') ? c : null));
@@ -112,16 +117,26 @@ export default function Terrain() {
 
   const photos = photosDe(terrain);
   const versCreneaux = () => blocCreneaux.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const reserver = () => (choisi ? navigate('/reserver', { state: { terrain, creneau: choisi } }) : versCreneaux());
+  const durees = dureesDe(terrain, dispo);
+  const options = choisi ? optionsDuree(creneaux, choisi.debut, durees) : [];
+  // La duree retenue, ou la premiere qui tient (si celle choisie vient d'etre prise).
+  const option = options.find((o) => o.minutes === duree && o.possible) || options.find((o) => o.possible);
+  const periode = choisi && option ? { debut: choisi.debut, fin: option.fin, prix: option.prix, dureeMinutes: option.minutes } : null;
+  const choisir = (c) => {
+    setChoisi(c);
+    // Plusieurs durees : on amene le choix de duree a l'ecran, sous la grille.
+    if (durees.length > 1) requestAnimationFrame(() => blocDuree.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  };
+  const reserver = () => (periode ? navigate('/reserver', { state: { terrain, creneau: periode } }) : versCreneaux());
   const min = terrain ? tarifMin(terrain) : 0;
 
   const prixEtAction = (
     <>
       <div className="min-w-0 flex-1">
-        {choisi ? (
+        {periode ? (
           <>
-            <p className="truncate text-[15px] font-bold">{formatPrix(choisi.prix)}</p>
-            <p className="truncate text-sm text-ink-light first-letter:uppercase">{dateLongue(choisi.debut)} · {plage(choisi.debut, choisi.fin)}</p>
+            <p className="truncate text-[15px] font-bold">{formatPrix(periode.prix)}</p>
+            <p className="truncate text-sm text-ink-light first-letter:uppercase">{dateLongue(periode.debut)} · {plage(periode.debut, periode.fin)}</p>
           </>
         ) : terrain ? (
           <>
@@ -135,7 +150,7 @@ export default function Terrain() {
       </div>
       <button type="button" onClick={reserver} disabled={!terrain}
         className="h-12 shrink-0 rounded-xl bg-primary px-6 text-[15px] font-semibold text-white shadow-card transition-colors hover:bg-primary-dark disabled:opacity-60">
-        {choisi ? 'Réserver' : 'Voir les créneaux'}
+        {periode ? 'Réserver' : 'Voir les créneaux'}
       </button>
     </>
   );
@@ -206,7 +221,7 @@ export default function Terrain() {
             <>
               <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 border-b border-line pb-7 sm:grid-cols-4 md:mt-8">
                 <Fait Icone={<Users size={20} aria-hidden="true" />} titre={`${terrain.capacite} joueurs`} texte="Capacité" />
-                <Fait Icone={<Timer size={20} aria-hidden="true" />} titre={`${terrain.dureeCreneauMinutes} min`} texte="Par créneau" />
+                <Fait Icone={<Timer size={20} aria-hidden="true" />} titre={resumeDurees(durees)} texte={durees.length > 1 ? 'Durée au choix' : 'Par créneau'} />
                 {terrain.surface && <Fait Icone={<Layers size={20} aria-hidden="true" />} titre={terrain.surface} texte="Surface" />}
                 <Fait Icone={<QrCode size={20} aria-hidden="true" />} titre="Ticket QR" texte="Sans compte" />
               </ul>
@@ -248,14 +263,16 @@ export default function Terrain() {
                   ))}
                 </ul>
                 <p className="mt-3 text-sm text-ink-light">
-                  Le prix d’un créneau de {terrain.dureeCreneauMinutes} min est calculé au prorata, selon l’heure de début.
+                  {durees.length > 1
+                    ? `Durées proposées : ${durees.map(libelleDuree).join(', ')}. Le prix est calculé au prorata, selon l’heure de début.`
+                    : `Le prix d’un créneau de ${terrain.dureeCreneauMinutes} min est calculé au prorata, selon l’heure de début.`}
                 </p>
               </section>
             </>
           )}
 
           <section ref={blocCreneaux} className="scroll-mt-24 py-7" aria-labelledby="creneaux">
-            <Titre id="creneaux">Choisissez un créneau</Titre>
+            <Titre id="creneaux">{durees.length > 1 ? 'Choisissez votre heure et votre durée' : 'Choisissez un créneau'}</Titre>
             <div className="mt-4"><ChoixJour valeur={jour} onChange={setJour} /></div>
             <div className="mt-4">
               {creneaux === null ? (
@@ -263,7 +280,30 @@ export default function Terrain() {
                   {Array.from({ length: 9 }, (_, i) => <Squelette key={i} className="h-14 rounded-md" />)}
                 </div>
               ) : (
-                <GrilleCreneaux creneaux={creneaux} choisi={choisi?.debut} onChoisir={setChoisi} />
+                <>
+                  <GrilleCreneaux creneaux={creneaux} choisi={choisi?.debut} finChoisie={periode?.fin} onChoisir={choisir} />
+                  {choisi && durees.length > 1 && (
+                    <div ref={blocDuree} className="mt-5 scroll-mb-28" role="radiogroup" aria-label="Durée de location">
+                      <p className="mb-2 text-sm font-semibold">Durée</p>
+                      <div className="flex flex-wrap gap-2">
+                        {options.map((o) => {
+                          const actif = option?.minutes === o.minutes;
+                          return (
+                            <button key={o.minutes} type="button" role="radio" aria-checked={actif} disabled={!o.possible}
+                              onClick={() => setDuree(o.minutes)}
+                              className={`flex min-w-[88px] flex-col items-center rounded-md border px-3 py-2 text-sm transition-colors ${
+                                actif ? 'border-primary bg-primary text-white shadow-card'
+                                  : o.possible ? 'border-line bg-surface hover:border-primary/50'
+                                    : 'cursor-not-allowed border-transparent bg-surface-alt text-ink-light/60'}`}>
+                              <span className="font-semibold">{libelleDuree(o.minutes)}</span>
+                              <span className={`text-[11px] ${actif ? 'text-white/85' : 'text-ink-light'}`}>{o.possible ? formatPrix(o.prix) : 'Indisponible'}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
