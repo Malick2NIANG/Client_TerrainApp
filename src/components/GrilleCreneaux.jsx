@@ -4,7 +4,7 @@ import { formatPrix } from '../utils/format';
 const ETIQUETTES = { RESERVE: 'Réservé', BLOQUE: 'Fermé', PASSE: 'Passé' };
 
 /** Creneaux d'un jour : libres selectionnables, les autres grises avec leur raison. */
-export default function GrilleCreneaux({ creneaux, choisi, onChoisir }) {
+export default function GrilleCreneaux({ creneaux, choisi, finChoisie, onChoisir }) {
   if (!creneaux.length) {
     return <p className="rounded-md bg-surface-alt p-4 text-center text-sm text-ink-light">Le complexe est fermé ce jour-là.</p>;
   }
@@ -18,11 +18,14 @@ export default function GrilleCreneaux({ creneaux, choisi, onChoisir }) {
         {creneaux.map((c) => {
           const libre = c.etat === 'LIBRE';
           const actif = choisi === c.debut;
+          // Creneaux suivants couverts par la duree choisie : en surbrillance douce.
+          const couvert = !actif && choisi && finChoisie && c.debut > choisi && c.debut < finChoisie;
           return (
             <li key={c.debut}>
               <button type="button" disabled={!libre} aria-pressed={actif} onClick={() => onChoisir(c)}
                 className={`flex w-full flex-col items-center rounded-md border px-1 py-2 text-sm transition-colors ${
                   actif ? 'border-primary bg-primary text-white shadow-card'
+                    : couvert ? 'border-primary/40 bg-primary/10 text-primary'
                     : libre ? 'border-line bg-surface hover:border-primary/50'
                       : 'cursor-not-allowed border-transparent bg-surface-alt text-ink-light/60'}`}>
                 <span className="font-semibold">{heure(c.debut)}</span>

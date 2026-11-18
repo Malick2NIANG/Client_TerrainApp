@@ -1,3 +1,4 @@
+import { libelleDuree } from '../utils/durees';
 import { useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
@@ -62,7 +63,7 @@ export default function Reserver() {
     setErreur(null);
     try {
       const r = await reserver({ terrainId: terrain.id, debut: creneau.debut, clientNom: `${prenom.trim()} ${nom.trim()}`,
-        clientTelephone: telNormalise, moyenPaiement: moyen }, cle.current);
+        clientTelephone: telNormalise, moyenPaiement: moyen, ...(creneau.dureeMinutes ? { dureeMinutes: creneau.dureeMinutes } : {}) }, cle.current);
       try {
         localStorage.setItem(CLE_CONTACT, JSON.stringify({ prenom: prenom.trim(), nom: nom.trim() }));
       } catch {
@@ -103,7 +104,7 @@ export default function Reserver() {
         <p className="font-semibold">{terrain.nom}</p>
         <p className="text-sm capitalize text-ink-light">{dateLongue(creneau.debut)}</p>
         <div className="mt-2 flex items-center justify-between border-t border-line pt-2">
-          <span className="font-semibold">{plage(creneau.debut, creneau.fin)}</span>
+          <span className="font-semibold">{plage(creneau.debut, creneau.fin)}{creneau.dureeMinutes ? <span className="font-normal text-ink-light"> · {libelleDuree(creneau.dureeMinutes)}</span> : null}</span>
           <span className="text-lg font-bold text-primary">{formatPrix(creneau.prix)}</span>
         </div>
       </section>

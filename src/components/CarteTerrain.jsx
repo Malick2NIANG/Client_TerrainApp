@@ -1,3 +1,4 @@
+import { dureesDe, resumeDurees } from '../utils/durees';
 import { Link } from 'react-router-dom';
 import { Flame, MapPin, Star, Users } from 'lucide-react';
 import { noteLisible } from '../utils/avis';
@@ -43,7 +44,7 @@ export default function CarteTerrain({ terrain, badge }) {
       )}
       <p className="truncate text-sm text-ink-light">
         <Users size={13} className="mr-1 inline align-[-2px]" aria-hidden="true" />
-        {[`${t.capacite} joueurs`, t.surface, `${t.dureeCreneauMinutes} min`].filter(Boolean).join(' · ')}
+        {[`${t.capacite} joueurs`, t.surface, resumeDurees(dureesDe(t))].filter(Boolean).join(' · ')}
       </p>
       <p className="mt-1.5 text-[15px]">
         {min < t.tarifHeure && <span className="text-ink-light">dès </span>}
