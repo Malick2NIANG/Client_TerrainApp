@@ -48,7 +48,9 @@ export default function Accueil() {
   }, [charger]);
 
   // Fond du bandeau : la premiere PHOTO d'un terrain (pas une video).
-  const couverture = useMemo(() => (tendances || terrains || []).flatMap(photosDe).find((u) => !estVideo(u)), [tendances, terrains]);
+  // Image d'accueil du complexe si elle est fournie (dossier du complexe).
+  const couverture = useMemo(() => marque.imageAccueil
+    || (tendances || terrains || []).flatMap(photosDe).find((u) => !estVideo(u)), [tendances, terrains]);
   const { ligne1, ligne2 } = sloganEnDeuxLignes();
   const rechercher = (texte) => navigate(texte?.trim() ? `/terrains?q=${encodeURIComponent(texte.trim())}` : '/terrains');
 
@@ -70,7 +72,7 @@ export default function Accueil() {
             {ligne1}
             {ligne2 && <span className="block text-primary-light">{ligne2}</span>}
           </h1>
-          <p className="mt-3 max-w-md text-[15px] text-white/80">{marque.sousTitre}</p>
+          <p className="mt-3 max-w-md text-[15px] text-white/80">{marque.accueilSousTitre || marque.sousTitre}</p>
           {terrains?.length > 0 && (
             <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-semibold backdrop-blur">
               <span className="h-2 w-2 animate-pulse rounded-full bg-primary-light" aria-hidden="true" />

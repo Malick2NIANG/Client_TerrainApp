@@ -13,7 +13,7 @@ import MosaiquePhotos from '../components/MosaiquePhotos';
 import GaleriePlein from '../components/GaleriePlein';
 import Visionneuse from '../components/Visionneuse';
 import { IconeEquipement, IconeSport } from '../components/Icones';
-import { MixxRond, OrangeMoneyRond, WaveRond } from '../components/LogosPaiement';
+import { LogosMoyens } from '../components/LogosPaiement';
 import { EtatErreur, Squelette } from '../components/EtatChargement';
 import { useToast } from '../context/ToastContext';
 import { dateLongue, hhmm, jourISO, plage } from '../utils/dates';
@@ -23,7 +23,7 @@ import { joursEnClair } from '../utils/tarifs';
 import { lienItineraire } from '../utils/itineraire';
 import { noteLisible } from '../utils/avis';
 import AvisJoueurs from '../components/AvisJoueurs';
-import { marque } from '../config/marque';
+import { marque, moyensEnToutesLettres } from '../config/marque';
 
 function Partager({ terrain, className = '' }) {
   const { showToast } = useToast();
@@ -335,6 +335,9 @@ export default function Terrain() {
               <li className="flex gap-3"><CalendarCheck size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Réservation confirmée dès le paiement : le créneau est à vous.</li>
               <li className="flex gap-3"><QrCode size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Présentez le ticket QR (ou sa référence) à l’entrée.</li>
               <li className="flex gap-3"><Clock size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Arrivez 10 minutes avant le début pour vous changer.</li>
+              {marque.delaiAnnulationHeures && (
+                <li className="flex gap-3"><CalendarCheck size={20} className="mt-0.5 shrink-0" aria-hidden="true" /> Annulation possible jusqu’à {marque.delaiAnnulationHeures} h avant le créneau, auprès du complexe.</li>
+              )}
             </ul>
           </section>
         </div>
@@ -344,8 +347,8 @@ export default function Terrain() {
           <div className="sticky top-24 mt-8 rounded-xl border border-line p-6 shadow-float">
             <div className="flex flex-col gap-4">{prixEtAction}</div>
             <div className="mt-5 flex items-center gap-3 border-t border-line pt-4 text-sm text-ink-light">
-              <span className="flex -space-x-2 [&>span]:h-7 [&>span]:w-7 [&>span]:ring-2 [&>span]:ring-white"><WaveRond /><OrangeMoneyRond /><MixxRond /></span>
-              Wave, Orange Money, Mixx ou carte
+              <span className="flex -space-x-2 [&>span]:h-7 [&>span]:w-7 [&>span]:ring-2 [&>span]:ring-white"><LogosMoyens /></span>
+              {moyensEnToutesLettres()}
             </div>
           </div>
         </aside>

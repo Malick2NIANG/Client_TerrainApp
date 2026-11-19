@@ -57,7 +57,7 @@ const LARGEUR = 80; // ticket de caisse 80 mm, comme au comptoir
 const MARGE = 5;
 
 /** Dessine le ticket et renvoie la hauteur utilisee (meme dessin pour mesurer puis produire). */
-function dessiner(doc, r, qr, itineraire) {
+function dessiner(doc, r, qr, itineraire, logo) {
   const T = pdfTexte;
   const L = LARGEUR;
   const droite = L - MARGE;
@@ -68,6 +68,13 @@ function dessiner(doc, r, qr, itineraire) {
     doc.text('-'.repeat(38), L / 2, y, { align: 'center' });
   };
 
+  // Bandeau a la couleur du complexe, puis son logo (dossier du complexe).
+  doc.setFillColor(...marque.couleurRgb);
+  doc.rect(0, 0, L, 3, 'F');
+  if (logo) {
+    doc.addImage(logo, 'PNG', (L - 16) / 2, 6, 16, 16);
+    y += 17;
+  }
   doc.setTextColor(0, 0, 0);
   doc.setFont('courier', 'bold');
   doc.setFontSize(14);
@@ -110,9 +117,9 @@ function dessiner(doc, r, qr, itineraire) {
   y += 5;
   doc.setFont('courier', 'normal');
   doc.setFontSize(8.5);
-  const pied = doc.splitTextToSize(T('Présentez ce reçu (QR code) à l’entrée, au plus tôt 30 minutes avant le créneau.'), L - 2 * MARGE);
+  const pied = doc.splitTextToSize(T(`Présentez ce reçu (QR code) à l’entrée, au plus tôt ${marque.margeEntreeMinutes} minutes avant le créneau.`), L - 2 * MARGE);
   pied.forEach((ligne) => { doc.text(ligne, L / 2, y, { align: 'center' }); y += 4; });
-  doc.text(T('Merci et bon match !'), L / 2, y, { align: 'center' });
+  doc.text(T(marque.piedDeRecu), L / 2, y, { align: 'center' });
   y += 5;
   if (itineraire) {
     doc.setTextColor(0, 0, 200);
@@ -127,6 +134,24 @@ function dessiner(doc, r, qr, itineraire) {
   return y + 3;
 }
 
+/** Logo PNG du complexe en data URL (null sans dossier de complexe ou hors ligne). */
+async function chargerLogo() {
+  if (!marque.logoPng) return null;
+  try {
+    const reponse = await fetch(marque.logoPng);
+    if (!reponse.ok) return null;
+    const blob = await reponse.blob();
+    return await new Promise((resolve) => {
+      const lecteur = new FileReader();
+      lecteur.onload = () => resolve(lecteur.result);
+      lecteur.onerror = () => resolve(null);
+      lecteur.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Recu PDF (ticket 80 mm) de la reservation (statut CONFIRMEE ou HONOREE). */
 export async function genererRecu(r) {
   const [{ jsPDF }, QRCode] = await Promise.all([import('jspdf'), import('qrcode')]);
@@ -134,10 +159,11 @@ export async function genererRecu(r) {
     ? await QRCode.toDataURL(r.codeTicket, { errorCorrectionLevel: 'M', margin: 1, width: 480 })
     : null;
   const itineraire = lienItineraire(r);
+  const logo = await chargerLogo();
   // 1er passage pour mesurer la hauteur, puis le ticket a sa taille exacte.
-  const hauteur = dessiner(new jsPDF({ unit: 'mm', format: [LARGEUR, 400] }), r, qr, itineraire);
+  const hauteur = dessiner(new jsPDF({ unit: 'mm', format: [LARGEUR, 400] }), r, qr, itineraire, logo);
   const doc = new jsPDF({ unit: 'mm', format: [LARGEUR, Math.ceil(hauteur)] });
-  dessiner(doc, r, qr, itineraire);
+  dessiner(doc, r, qr, itineraire, logo);
   return doc;
 }
 

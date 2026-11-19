@@ -51,6 +51,14 @@ B=$(( (0x$(printf '%s' "$HEX" | cut -c5-6) * 25 + 50) / 100 ))
 NUIT=$(printf '#%02X%02X%02X' "$R" "$V" "$B")
 case "$NUIT" in \#??????) ;; *) NUIT="#081F13" ;; esac
 
+# Identite complete du complexe (/marque/marque.json, produite par
+# `npm run client` : memes champs que GET /api/v1/marque). Lue telle quelle,
+# sur une ligne, et parsee dans le navigateur (JSON invalide : ignoree).
+MARQUE_JSON='{}'
+if [ -f /marque/marque.json ]; then
+  MARQUE_JSON=$(tr -d '\r\n' < /marque/marque.json)
+fi
+
 cat > "$HTML/config.js" <<EOF
 // Genere au demarrage du conteneur (docker/40-config-runtime.sh).
 window.__TERRAINAPP_CONFIG__ = {
@@ -66,7 +74,8 @@ window.__TERRAINAPP_CONFIG__ = {
   MARQUE_COULEUR: "$(echapper "${MARQUE_COULEUR:-}")",
   MARQUE_COULEUR_CLAIRE: "$(echapper "${MARQUE_COULEUR_CLAIRE:-}")",
   MARQUE_ADRESSE: "$(echapper "${MARQUE_ADRESSE:-}")",
-  MARQUE_WHATSAPP: "$(echapper "${MARQUE_WHATSAPP:-}")"
+  MARQUE_WHATSAPP: "$(echapper "${MARQUE_WHATSAPP:-}")",
+  MARQUE_COMPLETE: (function () { try { return JSON.parse("$(echapper "$MARQUE_JSON")"); } catch (e) { return {}; } })()
 };
 EOF
 
@@ -88,6 +97,12 @@ if [ -d /marque ]; then
   cp -R /marque/. "$HTML/marque/"
   if [ -d /marque/icons ]; then
     cp /marque/icons/* "$HTML/icons/"
+  fi
+  # Favicon du complexe (fourni ou genere depuis le logo par npm run client).
+  if [ -f /marque/favicon.svg ]; then
+    cp /marque/favicon.svg "$HTML/icons/icon.svg"
+  elif [ -f /marque/favicon.png ]; then
+    sed -i -e 's|<link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />|<link rel="icon" type="image/png" href="/marque/favicon.png" />|' "$HTML/index.html"
   fi
 fi
 
