@@ -58,6 +58,12 @@ export function remplirSplash(m = marque, doc = document) {
   const r = doc.documentElement.style;
   splash.style.setProperty('--splash-halo', `rgb(${r.getPropertyValue('--marque').trim().split(' ').join(',')})`);
   splash.style.setProperty('--splash-fond', `rgb(${r.getPropertyValue('--marque-nuit').trim().split(' ').join(',')})`);
+  // Image de fond du complexe (dossier du complexe), assombrie pour la lisibilite.
+  if (m.splash && /^\/marque\/[\w/.-]+$/.test(m.splash)) {
+    splash.style.backgroundImage = `linear-gradient(rgba(0,0,0,.55), rgba(0,0,0,.55)), url("${m.splash}")`;
+    splash.style.backgroundSize = 'cover';
+    splash.style.backgroundPosition = 'center';
+  }
 
   const bloc = doc.createElement('div');
   bloc.className = 'splash-bloc';

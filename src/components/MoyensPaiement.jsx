@@ -9,12 +9,15 @@ import { marque } from '../config/marque';
 // SECURITE / PCI DSS : aucune donnee de carte ni de compte n'est saisie dans
 // l'app. Le paiement se fait chez le prestataire (redirection vers sa page
 // securisee, puis retour sur la reservation).
-export const MOYENS_PAIEMENT = [
-  { id: 'wave', nom: 'Wave', Logo: WaveRond },
-  { id: 'orange-money', nom: 'Orange Money', Logo: OrangeMoneyRond },
-  { id: 'mixx-yas', nom: 'Mixx by Yas', Logo: MixxRond },
-  { id: 'carte', nom: 'Carte bancaire', sous: 'Visa, Mastercard' },
-];
+const TOUS_LES_MOYENS = {
+  wave: { id: 'wave', nom: 'Wave', Logo: WaveRond },
+  'orange-money': { id: 'orange-money', nom: 'Orange Money', Logo: OrangeMoneyRond },
+  'mixx-yas': { id: 'mixx-yas', nom: 'Mixx by Yas', Logo: MixxRond },
+  carte: { id: 'carte', nom: 'Carte bancaire', sous: 'Visa, Mastercard' },
+};
+
+/** Moyens en ligne proposes par le complexe, dans son ordre (dossier du complexe, sinon tous). */
+export const MOYENS_PAIEMENT = marque.moyensPaiement.map((id) => TOUS_LES_MOYENS[id]).filter(Boolean);
 
 // Panneau qui se deplie / replie en douceur (hauteur animee).
 function Depliable({ ouvert, id, children }) {

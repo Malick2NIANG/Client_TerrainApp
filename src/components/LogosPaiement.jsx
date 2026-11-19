@@ -8,6 +8,8 @@
 // Fintechs mobile money : decoupees en cercle. Cartes : Visa + Mastercard
 // cote a cote, au format carte.
 
+import { marque } from '../config/marque';
+
 const rond = 'flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full ring-1 ring-black/5';
 
 export function WaveRond() {
@@ -43,6 +45,16 @@ export function MixxRond() {
       <img src="/logos-paiement/mixx-yas.svg" alt="" className="max-h-full max-w-full object-contain" />
     </span>
   );
+}
+
+const RONDS = { wave: WaveRond, 'orange-money': OrangeMoneyRond, 'mixx-yas': MixxRond };
+
+/** Logos ronds des moyens mobiles proposes par le complexe (bandeaux « Paiement mobile »). */
+export function LogosMoyens() {
+  return marque.moyensPaiement.filter((id) => RONDS[id]).map((id) => {
+    const Logo = RONDS[id];
+    return <Logo key={id} />;
+  });
 }
 
 export function VisaLogo({ actif = true }) {

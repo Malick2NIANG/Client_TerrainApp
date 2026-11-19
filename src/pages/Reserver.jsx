@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { reserver } from '../api/reservations';
-import MoyensPaiement from '../components/MoyensPaiement';
+import MoyensPaiement, { MOYENS_PAIEMENT } from '../components/MoyensPaiement';
 import ChampTelephone from '../components/ChampTelephone';
 import { useMesReservations } from '../context/MesReservationsContext';
 import { dateLongue, plage } from '../utils/dates';
@@ -38,7 +38,7 @@ export default function Reserver() {
   const [prenom, setPrenom] = useState(memo.prenom ?? (memo.nom || '').split(' ')[0] ?? '');
   const [nom, setNom] = useState(memo.prenom !== undefined ? memo.nom || '' : (memo.nom || '').split(' ').slice(1).join(' '));
   const [telephone, setTelephone] = useState('');
-  const [moyen, setMoyen] = useState('wave');
+  const [moyen, setMoyen] = useState(MOYENS_PAIEMENT[0]?.id || 'wave');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState(null);
   const [champs, setChamps] = useState({});

@@ -9,7 +9,9 @@ export default function Ticket({ reservation }) {
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-surface shadow-card">
       <div className="bg-primary px-5 py-3 text-white">
-        <NomMarque className="text-sm font-bold tracking-wide" accentClassName="text-white/80" />
+        {marque.etablissement
+          ? <span className="text-sm font-bold uppercase tracking-wide">{marque.etablissement}</span>
+          : <NomMarque className="text-sm font-bold tracking-wide" accentClassName="text-white/80" />}
         <p className="text-xs text-white/85">Ticket d’entrée</p>
       </div>
       <div className="flex flex-col items-center gap-3 px-5 py-5">
@@ -27,7 +29,7 @@ export default function Ticket({ reservation }) {
             <MapPin size={12} aria-hidden="true" /> {marque.adresse}
           </p>
         )}
-        <p className="text-center text-xs text-ink-light">Présentez ce QR code à l’entrée, au plus tôt 30 min avant.</p>
+        <p className="text-center text-xs text-ink-light">Présentez ce QR code à l’entrée, au plus tôt {marque.margeEntreeMinutes} min avant.</p>
       </div>
     </div>
   );
